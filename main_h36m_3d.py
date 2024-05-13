@@ -4,13 +4,23 @@ from utils.opt import Options
 from utils import util
 from utils import log
 
+from utils import data_utils
+
 from torch.utils.data import DataLoader
 import torch
 import torch.nn as nn
 import numpy as np
 import time
+import csv
 import h5py
 import torch.optim as optim
+
+class Loader:
+    def __init__(self, filename):
+        with open(filename, "r") as fp:
+            reader = csv.reader(fp)
+            self.rawvals = np.array([[float(c) for c in row] for row in reader])
+            self.nvals = self.rawvals.reshape([self.rawvals.shape[0], -1, 3])
 
 
 def main(opt):
@@ -72,6 +82,16 @@ def main(opt):
             head = np.append(head, [k])
         log.save_csv_log(opt, head, ret_log, is_create=True, file_name='test_walking')
         # print('testing error: {:.3f}'.format(ret_test['m_p3d_h36']))
+
+    #visualize
+    if opt.is_visualize:
+
+        single = single_run_model(net_pred, opt)
+        print(single)
+        return single
+
+        #exit(0)
+
     # training
     if not opt.is_eval:
         err_best = 1000
@@ -109,11 +129,71 @@ def main(opt):
                           is_best=is_best, opt=opt)
 
 
+def single_run_model(net_pred ,opt=None):
+
+    net_pred.eval()
+
+    dim_used = np.array([6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 21, 22, 23, 24, 25,
+                         26, 27, 28, 29, 30, 31, 32, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45,
+                         46, 47, 51, 52, 53, 54, 55, 56, 57, 58, 59, 63, 64, 65, 66, 67, 68,
+                         75, 76, 77, 78, 79, 80, 81, 82, 83, 87, 88, 89, 90, 91, 92])
+    #finlename should be a command line optoion
+    #start frame too to not take in the whole file
+    loader = Loader(opt.filename)
+    single_file = loader.rawvals
+    batch_size = 1
+    in_n = opt.input_n
+    out_n = opt.output_n
+    seq_in = opt.kernel_size
+    start_f = opt.start_frame
+    sample_rate = 2
+    itera = 1
+    #print(fs.shape)
+    n, d = single_file.shape
+    even_list = range(0, n, sample_rate)
+    num_frames = len(even_list)
+    the_sequence = np.array(single_file[even_list, :])
+    the_sequence = torch.from_numpy(the_sequence).float().cuda()
+    # remove global rotation and translation
+    the_sequence[:, 0:6] = 0
+    p3d_single = data_utils.expmap2xyz_torch(the_sequence)
+    p3d_single_np = p3d_single.cpu().numpy()
+    p3d_reshaped = np.reshape(p3d_single_np, [p3d_single_np.shape[0], -1])
+    print(p3d_reshaped.shape)
+    fs = np.arange(start_f, start_f + in_n + out_n)
+    p3d_reshaped = p3d_reshaped[fs] #(60, 96)
+    single = np.expand_dims(p3d_reshaped, axis= 0)
+    shape_single_torch = torch.from_numpy(single)
+    shape_single = shape_single_torch.float().cuda()
+    p3d_sup_single = shape_single.clone()[:, :, dim_used][:, -out_n - seq_in:].reshape(
+        [-1, seq_in + out_n, len(dim_used) // 3, 3])
+
+    p3d_src_single = shape_single.clone()[:, :, dim_used]
+    print("single", p3d_src_single.shape)
+    p3d_src_single_squeeze = p3d_src_single.squeeze()
+    gt_pred = p3d_src_single_squeeze.cpu().detach().numpy()
+    np.savetxt("singlefile_gt_pred.txt", gt_pred, delimiter=',')
+    print('in and out frame saved')
+    #exit(0)
+
+    p3d_out_all = net_pred(p3d_src_single, input_n=in_n, output_n=out_n, itera=itera)
+    print("p3d_out_all single", p3d_out_all.shape)
+
+    p3d_out_all_squeezed = p3d_out_all.squeeze()
+    print(p3d_out_all_squeezed.shape)
+
+    single_data_prediction = p3d_out_all_squeezed.cpu().detach().numpy()
+    np.savetxt("singlefile.txt", single_data_prediction, delimiter=',')
+    print('model output saved')
+    #print(shape_single.shape)
+
+
 def run_model(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1, opt=None):
     if is_train == 0:
         net_pred.train()
     else:
         net_pred.eval()
+
 
     l_p3d = 0
     if is_train <= 1:
@@ -148,11 +228,14 @@ def run_model(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1, opt
         n += batch_size
         bt = time.time()
         p3d_h36 = p3d_h36.float().cuda()
+        print("The shape of p3d_h3d is", p3d_h36.shape)
         p3d_sup = p3d_h36.clone()[:, :, dim_used][:, -out_n - seq_in:].reshape(
             [-1, seq_in + out_n, len(dim_used) // 3, 3])
         p3d_src = p3d_h36.clone()[:, :, dim_used]
-        p3d_out_all = net_pred(p3d_src, input_n=in_n, output_n=out_n, itera=itera)
+        #print(p3d_src.shape)
 
+        p3d_out_all = net_pred(p3d_src, input_n=in_n, output_n=out_n, itera=itera)
+        print("p3d_out_all model out", p3d_out_all.shape)
         p3d_out = p3d_h36.clone()[:, in_n:in_n + out_n]
         p3d_out[:, :, dim_used] = p3d_out_all[:, seq_in:, 0]
         p3d_out[:, :, index_to_ignore] = p3d_out[:, :, index_to_equal]
@@ -161,7 +244,8 @@ def run_model(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1, opt
         p3d_h36 = p3d_h36.reshape([-1, in_n + out_n, 32, 3])
 
         p3d_out_all = p3d_out_all.reshape([batch_size, seq_in + out_n, itera, len(dim_used) // 3, 3])
-
+        print("p3d_out_all batch", p3d_out_all.shape)
+        exit(0)
         # 2d joint loss:
         grad_norm = 0
         if is_train == 0:

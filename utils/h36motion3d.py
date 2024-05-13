@@ -19,7 +19,8 @@ class Datasets(Dataset):
         :param split: 0 train, 1 testing, 2 validation
         :param sample_rate:
         """
-        self.path_to_data = "./datasets/h3.6m/"
+        self.path_to_data = "./datasets/h3.6m_repeated_frames/"
+        #self.path_to_data = "./datasets/h3.6m_periodic/"
         self.split = split
         self.in_n = opt.input_n
         self.out_n = opt.output_n
@@ -27,13 +28,14 @@ class Datasets(Dataset):
         self.p3d = {}
         self.data_idx = []
         seq_len = self.in_n + self.out_n
-        subs = np.array([[1, 6, 7, 8, 9], [11], [5]])
+        subs = np.array([np.array([1, 6, 7, 8, 9]), np.array([11]), np.array([5])], dtype= object)
         # acts = data_utils.define_actions(actions)
         if actions is None:
-            acts = ["walking", "eating", "smoking", "discussion", "directions",
-                    "greeting", "phoning", "posing", "purchases", "sitting",
-                    "sittingdown", "takingphoto", "waiting", "walkingdog",
-                    "walkingtogether"]
+            # acts = ["walking", "eating", "smoking", "discussion", "directions",
+            #         "greeting", "phoning", "posing", "purchases", "sitting",
+            #         "sittingdown", "takingphoto", "waiting", "walkingdog",
+            #         "walkingtogether"]
+            acts = ["walking", "walkingtogether"]
         else:
             acts = actions
         # subs = np.array([[1], [11], [5]])
@@ -126,11 +128,14 @@ class Datasets(Dataset):
         joint_to_ignore = np.array([0, 1, 6, 11, 16, 20, 23, 24, 28, 31])
         dimensions_to_ignore = np.concatenate((joint_to_ignore * 3, joint_to_ignore * 3 + 1, joint_to_ignore * 3 + 2))
         self.dimensions_to_use = np.setdiff1d(np.arange(96), dimensions_to_ignore)
+        #print(len(self.dimensions_to_use)) ##66
+        #exit(0)
 
     def __len__(self):
         return np.shape(self.data_idx)[0]
 
     def __getitem__(self, item):
         key, start_frame = self.data_idx[item]
+        #print(key,start_frame)
         fs = np.arange(start_frame, start_frame + self.in_n + self.out_n)
         return self.p3d[key][fs]

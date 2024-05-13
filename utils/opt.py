@@ -20,9 +20,13 @@ class Options:
         # self.parser.add_argument('--data_dir', type=str,
         #                          default='/home/wei/Documents/',
         #                          help='path to dataset')
+        self.parser.add_argument('--filename', type=str, help='path to single file to visualize')
+        self.parser.add_argument('--start_frame', type=int, help='path to single file to visualize')
         self.parser.add_argument('--exp', type=str, default='test', help='ID of experiment')
         self.parser.add_argument('--is_eval', dest='is_eval', action='store_true',
                                  help='whether it is to evaluate the model')
+        self.parser.add_argument('--is_visualize', dest='is_visualize', action='store_true',
+                                 help='visualize the output of the model')
         self.parser.add_argument('--ckpt', type=str, default='checkpoint/', help='path to save checkpoint')
         self.parser.add_argument('--skip_rate', type=int, default=5, help='skip rate of samples')
         self.parser.add_argument('--skip_rate_test', type=int, default=5, help='skip rate of samples for test')
