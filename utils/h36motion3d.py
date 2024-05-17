@@ -21,7 +21,7 @@ class Datasets(Dataset):
         """
         #self.path_to_data = "./datasets/h3.6m_recursive_synthetic/"
         #self.path_to_data = "./datasets/h3.6m_repeated_frames/"
-        self.path_to_data = "./datasets/h3.6m_periodic/"
+        self.path_to_data = "./datasets/%s/"%(opt.dataset)
         self.split = split
         self.in_n = opt.input_n
         self.out_n = opt.output_n

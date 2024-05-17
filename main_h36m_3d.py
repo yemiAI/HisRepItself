@@ -87,7 +87,7 @@ def main(opt):
     if opt.is_visualize:
 
         single = single_run_model(net_pred, opt)
-        print(single)
+        #print(single)
         return single
 
         #exit(0)
@@ -159,9 +159,9 @@ def single_run_model(net_pred ,opt=None):
     the_sequence[:, 0:6] = 0
     p3d_single = data_utils.expmap2xyz_torch(the_sequence)
     p3d_single_np = p3d_single.cpu().numpy()
-    print(p3d_single_np.shape) ###(1637, 32, 3)
+    #print(p3d_single_np.shape) ###(1637, 32, 3)
     p3d_reshaped = np.reshape(p3d_single_np, [p3d_single_np.shape[0], -1])
-    print(p3d_reshaped.shape)
+    #print(p3d_reshaped.shape)
     fs = np.arange(start_f, start_f + in_n + out_n)
     p3d_reshaped = p3d_reshaped[fs] #(60, 96)
 
@@ -177,13 +177,13 @@ def single_run_model(net_pred ,opt=None):
         [-1, seq_in + out_n, len(dim_used) // 3, 3])
 
     p3d_src_single = shape_single.clone()[:, :, dim_used]
-    print("single", p3d_src_single.shape)
+    #print("single", p3d_src_single.shape)
     #p3d_src_single_squeeze = p3d_src_single.squeeze()
     #gt_pred = p3d_src_single_squeeze.cpu().detach().numpy()
-    print(p3d_src_single.shape)
+    #print(p3d_src_single.shape)
     #exit(0)
     p3d_out_all = net_pred(p3d_src_single, input_n=in_n, output_n=out_n, itera=itera)
-    print(p3d_out_all.shape)
+    #print(p3d_out_all.shape)
     #exit(0)
     joint_to_ignore = np.array([16, 20, 23, 24, 28, 31])
     index_to_ignore = np.concatenate((joint_to_ignore * 3, joint_to_ignore * 3 + 1, joint_to_ignore * 3 + 2))
@@ -202,13 +202,13 @@ def single_run_model(net_pred ,opt=None):
     #exit(0)
     p3d_out_model_squeezed = p3d_out_model.squeeze()
 
-    print("p3d_out_all single", p3d_out_all.shape)
+    #print("p3d_out_all single", p3d_out_all.shape)
 
     single_data_prediction = p3d_out_model_squeezed.cpu().detach().numpy()
-    print(single_data_prediction.shape)
+    #print(single_data_prediction.shape)
     #exit(0)
     np.savetxt("singlefile.txt", single_data_prediction, delimiter=',')
-    print('model output saved')
+    print('prediction saved')
     #print(shape_single.shape)
 
 
@@ -262,16 +262,16 @@ def run_model(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1, opt
         p3d_out_all = net_pred(p3d_src, input_n=in_n, output_n=out_n, itera=itera)
         #print("p3d_out_all model out", p3d_out_all.shape)
         p3d_out = p3d_h36.clone()[:, in_n:in_n + out_n]
-        print(p3d_out.shape)
+        #print(p3d_out.shape)
         p3d_out[:, :, dim_used] = p3d_out_all[:, seq_in:, 0]
         p3d_out[:, :, index_to_ignore] = p3d_out[:, :, index_to_equal]
         p3d_out = p3d_out.reshape([-1, out_n, 32, 3])
 
         p3d_h36 = p3d_h36.reshape([-1, in_n + out_n, 32, 3])
-        print(p3d_out.shape)
+        #print(p3d_out.shape)
         #exit(0)
         p3d_out_all = p3d_out_all.reshape([batch_size, seq_in + out_n, itera, len(dim_used) // 3, 3])
-        print("p3d_out_all", p3d_out_all.shape)
+        #print("p3d_out_all", p3d_out_all.shape)
         #exit(0)
         # 2d joint loss:
         grad_norm = 0

@@ -17,9 +17,9 @@ class Options:
         # ===============================================================
         #                     General options
         # ===============================================================
-        # self.parser.add_argument('--data_dir', type=str,
-        #                          default='/home/wei/Documents/',
-        #                          help='path to dataset')
+        self.parser.add_argument('--dataset', type=str,
+                                  default='h3.6m_periodic',
+                                  help='path to dataset')
         self.parser.add_argument('--filename', type=str, help='path to single file to visualize')
         self.parser.add_argument('--start_frame', type=int, help='path to single file to visualize')
         self.parser.add_argument('--exp', type=str, default='test', help='ID of experiment')
@@ -67,10 +67,10 @@ class Options:
 
         if not self.opt.is_eval:
             script_name = os.path.basename(sys.argv[0])[:-3]
-            log_name = '{}_in{}_out{}_ks{}_dctn{}'.format(script_name, self.opt.input_n,
+            log_name = '{}_in{}_out{}_ks{}_dctn{}_ds{}'.format(script_name, self.opt.input_n,
                                                           self.opt.output_n,
                                                           self.opt.kernel_size,
-                                                          self.opt.dct_n)
+                                                          self.opt.dct_n, self.opt.dataset)
             self.opt.exp = log_name
             # do some pre-check
             ckpt = os.path.join(self.opt.ckpt, self.opt.exp)

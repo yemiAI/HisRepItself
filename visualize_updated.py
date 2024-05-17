@@ -296,13 +296,16 @@ if __name__ == '__main__':
     parser.add_argument("--keypoint", action = 'store_true', help = "Line only, no dots")
     parser.add_argument("--output", action = 'store_true', help = "Visualize model output too")
     parser.add_argument("--model_pth", type = str, help = "Draw a skel")
+    parser.add_argument("--padzeros", action = 'store_true', help ="zero padding")
     parser.add_argument("--save", type=str, help ="save the output of a model")
     parser.add_argument("file_gt", type = str)
     parser.add_argument("file_output", type=str)
 
     
     args = parser.parse_args()
-    
+
+
+
     l = Loader(args.file_gt)
     l_output = Loader(args.file_output)
     l_copy = l.nvals.copy()
@@ -310,11 +313,21 @@ if __name__ == '__main__':
     print(l_output.nvals.shape)
     #exit(0)
 
+    if args.padzeros:
+
+        zeros = np.zeros([l.nvals.shape[0], 1, 3])
+        #print(zeros.shape)
+        gt = np.append(zeros, l.nvals, axis=1)
+        pred = np.append(zeros, l_copy, axis=1)
+    else:
+        gt = l.nvals
+        pred = l_copy
+
     #l_copy[-args.kernel_size:, :] = l_output.nvals[:args.kernel_size, :]
     l_copy[-l_output.nvals.shape[0]:, :] = l_output.nvals
 
     if args.keypoint:
-        anim = Animation([l.nvals, l_copy], dots = not args.nodots, skellines = args.lineplot, scale = args.scale, save = args.save)
+        anim = Animation([gt, pred], dots = not args.nodots, skellines = args.lineplot, scale = args.scale, save = args.save)
     else:
         anim = Animation([l.xyz()], dots = not args.nodots, skellines = args.lineplot, scale = args.scale , save = args.save)
         #anim = Animation([l.nvals, l_copy], dots=not args.nodots, skellines=args.lineplot, scale=args.scale, save=args.save)
