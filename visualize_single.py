@@ -4,8 +4,6 @@ import torch
 import argparse
 import csv
 
-# from utils.utils import Quaternion, Vector, traverse_tree
-
 if (__name__ == '__main__'):
     from misc import expmap2rotmat_torch, rotmat2xyz_torch
 else:
@@ -15,71 +13,11 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
 import pandas as pd
-#from visualize import animation
 
 parents = [-1, 0, 1, 2, 3, 4, 0, 6, 7, 8, 9, 0, 11, 12, 13, 14, 12, 16, 17, 18, 19, 20, 19, 22, 12, 24, 25, 26, 27, 28,
            27, 30]
 
 parents_noextra = []
-
-
-# def time_signal(p3d, idx):
-#     selected_bones = [2,3,4,5,7,8,9,10]
-
-#     all_bestfit = []            #selected_bones = [26,27,24,24,13,16,18]
-#     for j in selected_bones:
-
-#         ts_x= p3d[:, j, 0].tolist()
-#         ts_y = p3d[:, j, 1].tolist()
-#         ts_z = p3d[:, j, 2].tolist()
-
-#         average_x = sum(ts_x) / len(ts_x)
-#         average_y = sum(ts_y) / len(ts_y)
-#         average_z = sum(ts_z) / len(ts_z)
-
-#         #print(average_x,average_y,average_z)
-#         tsa_x = [t - average_x for t in ts_x]
-#         tsa_y = [t - average_y for t in ts_y]
-#         tsa_z = [t - average_z for t in ts_z]
-
-#         #fft_x = np.fft.rfft(tsa_x , norm = 'ortho')
-#         #fft_y = np.fft.rfft(tsa_y , norm = 'ortho')
-#         #fft_z = np.fft.rfft(tsa_z , norm = 'ortho')
-
-#         tsa_x_np= np.array(tsa_x)
-#         #print(tsa_x_np.shape)
-#         tsa_y_np=  np.array(tsa_y)
-#         #print(tsa_y_np.shape)
-#         tsa_z_np=  np.array(tsa_z)
-
-#         period_size_x = pyd.findfrequency(tsa_x_np, detrend=True)
-#         #print(period_size_x)
-#         period_size_y = pyd.findfrequency(tsa_y_np, detrend=True)
-#         #print(period_size_y)
-#         period_size_z = pyd.findfrequency(tsa_z_np, detrend=True)
-
-#         bestfit_values = [period_size_x, period_size_y, period_size_z]
-#         all_bestfit.extend(bestfit_values)
-#         #print(bestfit_values)
-
-#     median = statistics.median(bestfit_values)
-#     #print(median)
-#     #phases = []
-#     number = np.arange(p3d.shape[0])
-
-#     scaling_factor = (2 * math.pi / median)
-
-#     phase = (-2 * math.pi * anchor_lookup[idx]/ median)
-
-#     cosine = np.cos( (scaling_factor*number) + phase)
-
-#     sin = np.sin((scaling_factor*number) + phase)
-
-#     both = [sin, cosine]
-
-#     time_signal = np.array(both).transpose()#.float().cuda()
-
-#     return time_signal
 
 class AnimationData:
 
@@ -96,11 +34,9 @@ class AnimationData:
                            'x': x,
                            'y': y,
                            'z': z})
-
         return df
 
     def unpack_extras(self, data, used):
-        # Clones are bones that always seem to have the same values as other bones
         clones = {
             31: 30,
             28: 27,
@@ -109,8 +45,6 @@ class AnimationData:
             23: 22,
             20: 19
         }
-
-        # Fixed are bones that always seem to have the same value
         fixed = {1: np.array([-132.9486, 0, 0]),
                  6: np.array([132.94882, 0, 0]),
                  11: np.array([0, 0.1, 0])}
@@ -125,7 +59,6 @@ class AnimationData:
         for c in clones:
             retval[:, c, :] = retval[:, clones[c], :]
 
-        # np.savez("unpacked_data.npz", orig = data, unpacked = retval)
         return retval
 
     def build_lines(self, num):
@@ -198,19 +131,11 @@ class Animation:
         self.dots = dots
         self.scale = scale
         self.paused = False
-
-        # self.signal =
-
         self.pauseatframe = pauseatframe
-
         self.ax = []
-
         self.extra_bones = unused_bones
-
         self.frames = animations[0].shape[0]
-
         self.animdata = [AnimationData(anim, self.extra_bones) for anim in animations]
-
         self.animlines = []
         self.animdots = []
         self.savefile = save
@@ -242,7 +167,7 @@ class Animation:
         plt.show()
 
 
-def phase(keypoints):  # takes tensor and returns best
+def phase(keypoints):
 
     foot = keypoints[:, 4, :]
     spine = keypoints[:, 0, :]
@@ -279,13 +204,25 @@ if __name__ == '__main__':
     parser.add_argument("--keypoint", action='store_true', help="Line only, no dots")
     parser.add_argument("--output", action='store_true', help="Visualize model output too")
     parser.add_argument("--model_pth", type=str, help="Draw a skel")
+    parser.add_argument("--padzeros", action='store_true', help="zero padding")
     parser.add_argument("--save", type=str, help="save the output of a model")
-    parser.add_argument("file", type=str)
+    parser.add_argument("--file", type=str)
 
     args = parser.parse_args()
 
     l = Loader(args.file)
+    l_copy = l.nvals.copy()
+    if args.padzeros:
+        
+        zeros = np.zeros([l.nvals.shape[0], 1, 3])
+        #gt = np.append(zeros, l.nvals, axis=1)
+        pred= np.append(zeros, l_copy, axis=1)
+
+
+    else:
+        gt = l.nvals
+
     if args.keypoint:
-        anim = Animation([l.nvals], dots=not args.nodots, skellines=args.lineplot, scale=args.scale)
+        anim = Animation([pred], dots=not args.nodots, skellines=args.lineplot, scale=args.scale, save=args.save)
     else:
         anim = Animation([l.xyz()], dots=not args.nodots, skellines=args.lineplot, scale=args.scale, save=args.save)

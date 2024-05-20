@@ -72,6 +72,7 @@ def main(opt):
     test_loader = DataLoader(test_dataset, batch_size=opt.test_batch_size, shuffle=False, num_workers=0,
                              pin_memory=True)
 
+
     # evaluation
     if opt.is_eval:
         ret_test = run_model(net_pred, is_train=3, data_loader=test_loader, opt=opt)
@@ -83,6 +84,7 @@ def main(opt):
         log.save_csv_log(opt, head, ret_log, is_create=True, file_name='test_walking')
         # print('testing error: {:.3f}'.format(ret_test['m_p3d_h36']))
 
+
     #visualize
     if opt.is_visualize:
 
@@ -90,7 +92,11 @@ def main(opt):
         #print(single)
         return single
 
+    if opt.is_mpjpe:
+        mpjpe = mpjpe_dump(opt)
+        #print(mpjpe)
         #exit(0)
+        return
 
     # training
     if not opt.is_eval:
@@ -129,7 +135,7 @@ def main(opt):
                           is_best=is_best, opt=opt)
 
 
-def single_run_model(net_pred ,opt=None):
+def single_run_model(net_pred, opt=None):
 
     net_pred.eval()
     #exit(0)
@@ -164,7 +170,6 @@ def single_run_model(net_pred ,opt=None):
     #print(p3d_reshaped.shape)
     fs = np.arange(start_f, start_f + in_n + out_n)
     p3d_reshaped = p3d_reshaped[fs] #(60, 96)
-
     np.savetxt("singlefile_gt_pred.txt", p3d_reshaped, delimiter=',')
     print('in and out frame saved')
     #exit(0)
@@ -172,7 +177,9 @@ def single_run_model(net_pred ,opt=None):
     # #exit(0)
     single = np.expand_dims(p3d_reshaped, axis= 0)
     shape_single_torch = torch.from_numpy(single)
-    shape_single = shape_single_torch.float().cuda()
+    shape_single = shape_single_torch.float().cuda()  ###1,60,96
+    #print(len(shape_single))
+    #exit(0)
     p3d_sup_single = shape_single.clone()[:, :, dim_used][:, -out_n - seq_in:].reshape(
         [-1, seq_in + out_n, len(dim_used) // 3, 3])
 
@@ -198,19 +205,73 @@ def single_run_model(net_pred ,opt=None):
 
     p3d_out_model[:, :, dim_used] = p3d_out_all[:, seq_in:, 0]
     p3d_out_model[:, :, index_to_ignore] = p3d_out_model[:, :, index_to_equal]
-    print(p3d_out_model.shape)
+    p3d_out_model_mpjpe = p3d_out_model.reshape([-1, out_n, 32, 3])
+
+    shape_single = shape_single.reshape([-1, in_n + out_n, 32, 3])
+
+    print(p3d_out_model_mpjpe.shape)  ###torch.Size([1, 10, 32, 3])
     #exit(0)
     p3d_out_model_squeezed = p3d_out_model.squeeze()
 
     #print("p3d_out_all single", p3d_out_all.shape)
 
     single_data_prediction = p3d_out_model_squeezed.cpu().detach().numpy()
-    #print(single_data_prediction.shape)
+    print(single_data_prediction.shape)
     #exit(0)
     np.savetxt("singlefile.txt", single_data_prediction, delimiter=',')
     print('prediction saved')
-    #print(shape_single.shape)
 
+
+    mpjpe_p3d_h36_single = torch.sum(torch.mean(torch.norm(shape_single[:, in_n:] - p3d_out_model_mpjpe, dim=3), dim=2), dim=0)
+    m_p3d_h36_single = mpjpe_p3d_h36_single.cpu().data.numpy()
+    m_p3d_h36_single_reshaped = np.reshape(m_p3d_h36_single, (1, -1))
+    #np.savetxt("mpjpe_singlefile0.txt", m_p3d_h36_single_reshaped, delimiter=',')
+    #print("MPJPE saved")
+    #print(m_p3d_h36_single.shape)
+
+    #
+    # ret_single = {}
+    # ret_single["m_p3d_h36"] = m_p3d_h36_single_reshaped / n
+    #
+    #print(m_p3d_h36_single_reshaped)
+    #exit(0)
+    return m_p3d_h36_single_reshaped
+
+
+def mpjpe_dump(opt= None):
+
+    loader = Loader(opt.filename)
+    single_file = loader.rawvals
+    batch_size = 1
+    in_n = opt.input_n
+    out_n = opt.output_n
+    seq_in = opt.kernel_size
+    start_f = opt.start_frame
+    in_features = opt.in_features
+    d_model = opt.d_model
+    kernel_size = opt.kernel_size
+    sample_rate = 1
+    n, d = single_file.shape
+    even_list = range(0, n, sample_rate)
+    the_sequence = np.array(single_file[even_list, :])
+    the_sequence = torch.from_numpy(the_sequence).float().cuda()
+    p3d_single = data_utils.expmap2xyz_torch(the_sequence)
+    p3d_single_np = p3d_single.cpu().numpy()
+    print(p3d_single_np.shape[0])
+    num_frames = p3d_single_np.shape[0] - in_n - out_n
+    results = np.zeros((num_frames, out_n + 1))
+
+    net_pred = AttModel.AttModel(in_features=in_features, kernel_size=kernel_size, d_model=d_model,
+                                 num_stage=opt.num_stage, dct_n=opt.dct_n).cuda()
+    for i in range(num_frames):
+        opt.start_frame = i
+        single_file_mpjpes = single_run_model(net_pred, opt)
+        #print(single_file_mpjpes)
+        results[i, 0] = i
+        results[i, 1:] = single_file_mpjpes
+        
+        np.savetxt("mpjpe_singlefile0.txt", results, delimiter=',')
+        print("MPJPE results saved to mpjpe_singlefile0.txt")
 
 def run_model(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1, opt=None):
     if is_train == 0:
@@ -253,6 +314,7 @@ def run_model(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1, opt
         bt = time.time()
         p3d_h36 = p3d_h36.float().cuda()
         #print("The shape of p3d_h3d is", p3d_h36.shape)
+        #exit(0)
         p3d_sup = p3d_h36.clone()[:, :, dim_used][:, -out_n - seq_in:].reshape(
             [-1, seq_in + out_n, len(dim_used) // 3, 3])
         p3d_src = p3d_h36.clone()[:, :, dim_used]
@@ -265,10 +327,10 @@ def run_model(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1, opt
         #print(p3d_out.shape)
         p3d_out[:, :, dim_used] = p3d_out_all[:, seq_in:, 0]
         p3d_out[:, :, index_to_ignore] = p3d_out[:, :, index_to_equal]
-        p3d_out = p3d_out.reshape([-1, out_n, 32, 3])
 
+        p3d_out = p3d_out.reshape([-1, out_n, 32, 3]) ####torch.Size([32, 10, 32, 3])
         p3d_h36 = p3d_h36.reshape([-1, in_n + out_n, 32, 3])
-        #print(p3d_out.shape)
+        #print(p3d_h36.shape)
         #exit(0)
         p3d_out_all = p3d_out_all.reshape([batch_size, seq_in + out_n, itera, len(dim_used) // 3, 3])
         #print("p3d_out_all", p3d_out_all.shape)
@@ -295,6 +357,8 @@ def run_model(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1, opt
             print('{}/{}|bt {:.3f}s|tt{:.0f}s|gn{}'.format(i + 1, len(data_loader), time.time() - bt,
                                                            time.time() - st, grad_norm))
     ret = {}
+    #print(ret)
+    #exit(0)
     if is_train == 0:
         ret["l_p3d"] = l_p3d / n
 

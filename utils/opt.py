@@ -21,10 +21,13 @@ class Options:
                                   default='h3.6m_periodic',
                                   help='path to dataset')
         self.parser.add_argument('--filename', type=str, help='path to single file to visualize')
+        self.parser.add_argument('--filename_mpjpe', type=str, help='path to single file to visualize')
         self.parser.add_argument('--start_frame', type=int, help='path to single file to visualize')
         self.parser.add_argument('--exp', type=str, default='test', help='ID of experiment')
         self.parser.add_argument('--is_eval', dest='is_eval', action='store_true',
                                  help='whether it is to evaluate the model')
+        self.parser.add_argument('--is_mpjpe', dest='is_mpjpe', action='store_true',
+                                 help='whether it is to evaluate a single file through the model')
         self.parser.add_argument('--is_visualize', dest='is_visualize', action='store_true',
                                  help='visualize the output of the model')
         self.parser.add_argument('--ckpt', type=str, default='checkpoint/', help='path to save checkpoint')
