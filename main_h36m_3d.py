@@ -270,7 +270,7 @@ def mpjpe_dump(opt= None):
         results[i, 0] = i
         results[i, 1:] = single_file_mpjpes
         
-        np.savetxt("mpjpe_singlefile0.txt", results, delimiter=',')
+        np.savetxt("mpjpe_singlefile_retimed_interpolation0.txt", results, delimiter=',')
         print("MPJPE results saved to mpjpe_singlefile0.txt")
 
 def run_model(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1, opt=None):
