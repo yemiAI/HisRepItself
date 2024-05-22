@@ -170,7 +170,7 @@ def single_run_model(net_pred, opt=None):
     #print(p3d_reshaped.shape)
     fs = np.arange(start_f, start_f + in_n + out_n)
     p3d_reshaped = p3d_reshaped[fs] #(60, 96)
-    np.savetxt("singlefile_gt_pred.txt", p3d_reshaped, delimiter=',')
+    np.savetxt("singlefile_gt_s5_walking_1_original.txt", p3d_reshaped, delimiter=',')
     print('in and out frame saved')
     #exit(0)
     # print(p3d_reshaped.shape)
@@ -218,7 +218,7 @@ def single_run_model(net_pred, opt=None):
     single_data_prediction = p3d_out_model_squeezed.cpu().detach().numpy()
     print(single_data_prediction.shape)
     #exit(0)
-    np.savetxt("singlefile.txt", single_data_prediction, delimiter=',')
+    np.savetxt("singlefile_pred_s5_walking_1_original.txt", single_data_prediction, delimiter=',')
     print('prediction saved')
 
 
