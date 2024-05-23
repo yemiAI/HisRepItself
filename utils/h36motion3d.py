@@ -5,8 +5,23 @@ import scipy.io as sio
 from utils import data_utils
 from matplotlib import pyplot as plt
 import torch
+import re
+import csv
+
+##read cvs file
 
 
+#filename = "human3.6_retimed_interpolation_annotation.csv"
+h36_anno_dict = {}
+with open('human3.6_retimed_interpolation_annotation.csv') as h36_anno:
+        reader = csv.DictReader(h36_anno)
+        for row in reader:
+            #annotations = row['dataset'][:-4], row['period']
+            dataset = row['dataset'][:-4]
+            period=  float(row['period'])
+            h36_anno_dict[dataset] =period
+#print(h36_anno_dict)
+#exit(0)
 class Datasets(Dataset):
 
     def __init__(self, opt, actions=None, split=0):
@@ -27,6 +42,9 @@ class Datasets(Dataset):
         self.out_n = opt.output_n
         self.sample_rate = 2
         self.p3d = {}
+        self.anno = h36_anno_dict
+
+        #self.modified_template =
         self.data_idx = []
         seq_len = self.in_n + self.out_n
         subs = np.array([np.array([1, 6, 7, 8, 9]), np.array([11]), np.array([5])], dtype= object)
@@ -57,8 +75,14 @@ class Datasets(Dataset):
                 action = acts[action_idx]
                 if self.split <= 1:
                     for subact in [1, 2]:  # subactions
+                        #print(subact)
+                        #exit(0)
                         print("Reading subject {0}, action {1}, subaction {2}".format(subj, action, subact))
                         filename = '{0}/S{1}/{2}_{3}.txt'.format(self.path_to_data, subj, action, subact)
+
+                        modified_key = '{0}{1}_s{2}'.format(action, subact, subj)
+
+                        period = int(h36_anno_dict[modified_key])
                         the_sequence = data_utils.readCSVasFloat(filename)
                         n, d = the_sequence.shape
                         even_list = range(0, n, self.sample_rate)
@@ -75,12 +99,21 @@ class Datasets(Dataset):
 
                         # tmp_data_idx_1 = [(subj, action, subact)] * len(valid_frames)
                         tmp_data_idx_1 = [key] * len(valid_frames)
+                        #print(tmp_data_idx_1.shape)
+                        #exit(0)
                         tmp_data_idx_2 = list(valid_frames)
-                        self.data_idx.extend(zip(tmp_data_idx_1, tmp_data_idx_2))
+                        tmp_data_idx_3 = [period] * len(valid_frames)
+                        self.data_idx.extend(zip(tmp_data_idx_1, tmp_data_idx_2, tmp_data_idx_3))
+                        #print(self.data_idx)
                         key += 1
                 else:
                     print("Reading subject {0}, action {1}, subaction {2}".format(subj, action, 1))
                     filename = '{0}/S{1}/{2}_{3}.txt'.format(self.path_to_data, subj, action, 1)
+                    #print(subact)
+                    #exit(0)
+                    modified_key = '{0}{1}_s{2}'.format(action, 1, subj)
+                    period_1 = int(h36_anno_dict[modified_key])
+
                     the_sequence1 = data_utils.readCSVasFloat(filename)
                     n, d = the_sequence1.shape
                     even_list = range(0, n, self.sample_rate)
@@ -95,6 +128,9 @@ class Datasets(Dataset):
 
                     print("Reading subject {0}, action {1}, subaction {2}".format(subj, action, 2))
                     filename = '{0}/S{1}/{2}_{3}.txt'.format(self.path_to_data, subj, action, 2)
+                    modified_key = '{0}{1}_s{2}'.format(action, 2, subj)
+
+                    period_2 = int(h36_anno_dict[modified_key])
                     the_sequence2 = data_utils.readCSVasFloat(filename)
                     n, d = the_sequence2.shape
                     even_list = range(0, n, self.sample_rate)
@@ -117,12 +153,14 @@ class Datasets(Dataset):
                     valid_frames = fs_sel1[:, 0]
                     tmp_data_idx_1 = [key] * len(valid_frames)
                     tmp_data_idx_2 = list(valid_frames)
-                    self.data_idx.extend(zip(tmp_data_idx_1, tmp_data_idx_2))
+                    tmp_data_idx_3 = [period_1] * len(valid_frames)
+                    self.data_idx.extend(zip(tmp_data_idx_1, tmp_data_idx_2, tmp_data_idx_3))
 
                     valid_frames = fs_sel2[:, 0]
                     tmp_data_idx_1 = [key + 1] * len(valid_frames)
                     tmp_data_idx_2 = list(valid_frames)
-                    self.data_idx.extend(zip(tmp_data_idx_1, tmp_data_idx_2))
+                    tmp_data_idx_3 = [period_2] * len(valid_frames)
+                    self.data_idx.extend(zip(tmp_data_idx_1, tmp_data_idx_2, tmp_data_idx_3))
                     key += 2
 
         # ignore constant joints and joints at same position with other joints
@@ -136,7 +174,8 @@ class Datasets(Dataset):
         return np.shape(self.data_idx)[0]
 
     def __getitem__(self, item):
-        key, start_frame = self.data_idx[item]
-        #print(key,start_frame)
+        key, start_frame, period = self.data_idx[item]
+        #print(key, start_frame, period)
+        #exit(0)
         fs = np.arange(start_frame, start_frame + self.in_n + self.out_n)
-        return self.p3d[key][fs]
+        return self.p3d[key][fs], period

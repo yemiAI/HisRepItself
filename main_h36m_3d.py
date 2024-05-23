@@ -304,7 +304,7 @@ def run_model(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1, opt
     idx = np.expand_dims(np.arange(seq_in + out_n), axis=1) + (
             out_n - seq_in + np.expand_dims(np.arange(itera), axis=0))
     st = time.time()
-    for i, (p3d_h36) in enumerate(data_loader):
+    for i, (p3d_h36, ano) in enumerate(data_loader):
         # print(i)
         batch_size, seq_n, _ = p3d_h36.shape
         # when only one sample in this batch
