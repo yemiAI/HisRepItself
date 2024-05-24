@@ -96,36 +96,15 @@ class Animation:
     def update_rolling_graph(self, frame):
         try:
             # Extract the relevant rows for the current frame
-            row_data_1 = self.rolling_data.iloc[frame-50:frame+50, 1]
-            row_data_5 = self.rolling_data.iloc[frame-50:frame+50, 5]
-            row_data_10 = self.rolling_data.iloc[frame-50:frame+50, 10]
+            row_data_5 = self.rolling_data.iloc[frame - 50:frame + 50, 5]
+            row_data_5_2 = self.rolling_data_2.iloc[frame - 50:frame + 50, 5]
 
-            frame_no = frame
-            #print("The frame number is %d" % frame_no)
-
-            # Update main rolling graph
-            #self.rolling_line.set_data(range(1, len(row_data_1) + 1), row_data_1)
-            # self.rolling_ax.relim()
-            # self.rolling_ax.autoscale_view()
-
-            # Update additional subplots
-            self.rolling_line.set_data(range(1, len(row_data_1) + 1), row_data_1)
+            # Update combined rolling graph
+            self.rolling_line.set_data(range(1, len(row_data_5) + 1), row_data_5)
+            self.rolling_line_2.set_data(range(1, len(row_data_5_2) + 1), row_data_5_2)
             self.rolling_ax.relim()
             self.rolling_ax.autoscale_view()
             self.rolling_ax.axline([50, 0], [50, 30], color="orange")
-
-            self.rolling_line1.set_data(range(1, len(row_data_5) + 1), row_data_5)
-            self.rolling_ax1.relim()
-            self.rolling_ax1.autoscale_view()
-
-            self.rolling_ax1.axline([50, 0], [50, 30], color= "orange")
-
-
-            self.rolling_line2.set_data(range(1, len(row_data_10) + 1), row_data_10)
-            self.rolling_ax2.relim()
-            self.rolling_ax2.autoscale_view()
-            self.rolling_ax2.axline([50, 0], [50, 30], color="orange")
-            #print(f"Updating rolling graph for frame {frame_no}: {row_data_5.values}")
 
         except Exception as e:
             print(f"Error updating rolling graph: {e}")
@@ -137,9 +116,11 @@ class Animation:
             self.ani.pause()
         self.paused = not self.paused
 
-    def __init__(self, animations, rolling_file, dots=True, skellines=False, scale=1.0, unused_bones=True,
+    def __init__(self, animations, rolling_file, rolling_file_2, dots=True, skellines=False, scale=1.0,
+                 unused_bones=True,
                  pauseatframe=-1, save=None):
-        self.fig = plt.figure(figsize=(10, 10), facecolor='white', edgecolor= 'white')  # Adjust the figure size as needed
+        self.fig = plt.figure(figsize=(10, 10), facecolor='white',
+                              edgecolor='white')  # Adjust the figure size as needed
         self.skellines = skellines
         self.dots = dots
         self.scale = scale
@@ -156,8 +137,8 @@ class Animation:
 
         for idx, adata in enumerate(self.animdata):
             # Place the main animation at the top
-            self.fig.suptitle('Human 3.6m S5 walking')
-            self.ax.append(self.fig.add_axes([0.1, 0.57, 0.8, 0.42], projection='3d'))  # [left, bottom, width, height]
+            self.fig.suptitle('H3.6m S5 walking 1')
+            self.ax.append(self.fig.add_axes([0.1, 0.38, 0.8, 0.52], projection='3d'))  # [left, bottom, width, height]
             self.animlines.append([])
             idata = adata.df[adata.df['time'] == 0]
             if (self.skellines):
@@ -175,44 +156,23 @@ class Animation:
 
             self.ax[idx].view_init(elev=147, azim=-90, roll=0)
 
-        # Add vertically aligned rolling graph subplots
-        # 1
-        self.rolling_ax = self.fig.add_axes([0.1, 0.49, 0.8, 0.13])  # [left, bottom, width, height]
-        self.rolling_line, = self.rolling_ax.plot([], [], marker='o', linestyle='-')
-        self.rolling_ax.set_xlim(0,50)  # Adjust limits based on your data
-        self.rolling_ax.set_ylim(0, 30)  # Adjust limits based on your data
+        # Add a single rolling graph with two lines
+        self.rolling_ax = self.fig.add_axes([0.1, 0.15, 0.8, 0.22])  # [left, bottom, width, height]
+        self.rolling_line, = self.rolling_ax.plot([], [], marker='.', linestyle='-', label=' S5_walking_1_MPJPE')
+        self.rolling_line_2, = self.rolling_ax.plot([], [], marker='.', linestyle='-', label='S5_walking_1_ret_inter_MPJPE', color='green')
+        self.rolling_ax.set_xlim(0, 100)  # Adjust limits based on your data
+        self.rolling_ax.set_ylim(0, 100)  # Adjust limits based on your data
+        self.rolling_ax.set_xticks([i for i in range(0, 101, 10)], [i - 50 for i in range(0, 101, 10)])
+        self.rolling_ax.set_title('Frame 5 predictions', loc='right', fontsize=10)
+        self.rolling_ax.legend()
 
-        #self.rolling_ax.set_subylabel('Value')
-        # self.rolling_ax.set_subylabel('Value')
-        self.rolling_ax.set_xticks([i for i in range(0,101,10)], [i - 50 for i in range(0,101,10)])
-
-        self.rolling_ax.set_title('Frame 1 prediction', loc= 'right', fontsize= 10)
-        #self.rolling_ax.set_ylabel('Te')
-        # 5
-        self.rolling_ax1 = self.fig.add_axes([0.1, 0.28, 0.8, 0.15])  # [left, bottom, width, height]
-        self.rolling_line1, = self.rolling_ax1.plot([], [], marker='o', linestyle='-')
-        self.rolling_ax1.set_xlim(0, 100)  # Adjust limits based on your data
-        self.rolling_ax1.set_ylim(0, 95)  # Adjust limits based on your data
-        self.rolling_ax1.set_xticks([i for i in range(0, 101, 10)], [i - 50 for i in range(0, 101, 10)])
-        self.rolling_ax1.set_title('Frame 5 prediction', loc='right', fontsize= 10)
-        #self.rolling_ax.set_ylabel('Time')
-        # 10
-        self.rolling_ax2 = self.fig.add_axes([0.1, 0.07, 0.8, 0.15])  # [left, bottom, width, height]
-        self.rolling_line2, = self.rolling_ax2.plot([], [], marker='o', linestyle='-')
-        self.rolling_ax2.set_xlim(0, 100)  # Adjust limits based on your data
-        self.rolling_ax2.set_ylim(0, 160)  # Adjust limits based on your data
-        self.rolling_ax2.set_xticks([i for i in range(0, 101, 10)], [i - 50 for i in range(0, 101, 10)])
-        self.rolling_ax2.set_title('Frame 10 prediction', loc= 'right', fontsize= 10)
-        #self.rolling_ax.set_ylabel('Time')
         self.rolling_file = rolling_file
-
-
+        self.rolling_file_2 = rolling_file_2
 
         try:
             # Read the initial rolling graph data from CSV, skipping the first column
             self.rolling_data = pd.read_csv(self.rolling_file)
-            #print("Initial rolling data read:")
-            #print(self.rolling_data.head())
+            self.rolling_data_2 = pd.read_csv(self.rolling_file_2)
             if self.rolling_data.shape[
                 1] == 11:  # Expecting 11 columns, with the first being time/frame and the rest being test results
                 self.rolling_line.set_data(range(1, self.rolling_data.shape[1]), self.rolling_data.iloc[0, 1:])
@@ -224,16 +184,16 @@ class Animation:
         except Exception as e:
             print(f"Unexpected error: {e}")
 
-        self.framecounter = plt.figtext(0.1, 0.95, "frame=0")  # Position frame counter at the top left
+        self.framecounter = plt.figtext(0.1, 0.95, "Frame=0")  # Position frame counter at the top left
         self.ani = animation.FuncAnimation(self.fig, self.update_plot, frames=self.frames, interval=0)
         self.fig.canvas.mpl_connect('button_press_event', self.toggle_pause)
 
         # Add shared X and Y labels
-        self.fig.text(0.5, 0.02, 'Frame Offsets', ha='center', va='center')
-        self.fig.text(0.02, 0.35, 'MPJPE', ha='center', va='center', rotation='vertical')
+        self.fig.text(0.5, 0.10, 'Frame Offsets', ha='center', va='center')
+        self.fig.text(0.048, 0.26, 'MPJPE', ha='center', va='center', rotation='vertical')
 
         if self.savefile:
-            self.ani.save(filename=self.savefile, writer="ffmpeg", fps= 30)
+            self.ani.save(filename=self.savefile, writer="ffmpeg", fps=30)
 
         plt.show()
 
@@ -246,7 +206,7 @@ def phase(keypoints):
     distance_diff = footxz - spinexz
     distances = np.linalg.norm(distance_diff, axis=1)
     frame = np.argmax(distances)
-    #print(frame)
+    # print(frame)
     return frame
 
 
@@ -255,12 +215,12 @@ class Loader:
         with open(filename, "r") as fp:
             reader = csv.reader(fp)
             self.rawvals = np.array([[float(c) for c in row] for row in reader])[:, 3:]
-            #print(self.rawvals.shape)
+            # print(self.rawvals.shape)
             self.nvals = self.rawvals.reshape([self.rawvals.shape[0], -1, 3])
 
     def xyz(self):
         rm = expmap2rotmat_torch(torch.tensor(self.nvals.reshape(-1, 3))).float().reshape(self.nvals.shape[0], 32, 3, 3)
-        #print(rm.shape)
+        # print(rm.shape)
         return rotmat2xyz_torch(rm)
 
 
@@ -276,6 +236,7 @@ if __name__ == '__main__':
     parser.add_argument("--save", type=str, help="save the output of a model")
     parser.add_argument("--file", type=str)
     parser.add_argument("--rolling_file", type=str, help="CSV file for rolling graph", required=True)
+    parser.add_argument("--rolling_file_2", type=str, help="CSV file for rolling graph", required=True)
 
     args = parser.parse_args()
 
@@ -288,8 +249,10 @@ if __name__ == '__main__':
         gt = l.nvals
 
     if args.keypoint:
-        anim = Animation([pred], args.rolling_file, dots=not args.nodots, skellines=args.lineplot, scale=args.scale,
+        anim = Animation([pred], args.rolling_file, args.rolling_file_2, dots=not args.nodots, skellines=args.lineplot,
+                         scale=args.scale,
                          save=args.save)
     else:
-        anim = Animation([l.xyz()], args.rolling_file, dots=not args.nodots, skellines=args.lineplot, scale=args.scale,
+        anim = Animation([l.xyz()], args.rolling_file, args.rolling_file_2, dots=not args.nodots,
+                         skellines=args.lineplot, scale=args.scale,
                          save=args.save)

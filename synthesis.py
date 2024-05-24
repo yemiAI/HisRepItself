@@ -97,7 +97,7 @@ def interpolation(inputfile, outputfile, datafile):
 
 
 in_base_path = "datasets/h3.6m_periodic"
-out_base_path = "datasets/human3.6_retimed_interpolation_annotation"
+out_base_path = "datasets/MPJPE_squashed"
 
 
 
@@ -106,7 +106,7 @@ path_template2 = "%s_%s.txt"
 file_pattern = "(.+)([12])_s([0-9]+).txt"
 annotation = {}
 annotation_footanchor = {}
-csv_file = 'human3.6_retimed_interpolation_annotation.csv'
+csv_file = 'human3.6_retimed_interpolation_annotation_working.csv'
 
 
 
