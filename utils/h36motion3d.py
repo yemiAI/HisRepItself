@@ -38,7 +38,8 @@ class Datasets(Dataset):
         #self.path_to_data = "./datasets/h3.6m_repeated_frames/"
         self.path_to_data = "./datasets/%s/"%(opt.dataset)
         self.split = split
-        self.in_n = opt.input_n
+
+        self.in_n = opt.input_n_run
         self.out_n = opt.output_n
         self.sample_rate = 2
         self.p3d = {}

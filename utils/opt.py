@@ -28,6 +28,9 @@ class Options:
                                  help='whether it is to evaluate the model')
         self.parser.add_argument('--is_mpjpe', dest='is_mpjpe', action='store_true',
                                  help='whether it is to evaluate a single file through the model')
+
+        self.parser.add_argument('--model_fold', dest='model_fold', action='store_true',
+                                 help='whether it is to evaluate a single file through the model')
         self.parser.add_argument('--is_visualize', dest='is_visualize', action='store_true',
                                  help='visualize the output of the model')
         self.parser.add_argument('--ckpt', type=str, default='checkpoint/', help='path to save checkpoint')
@@ -49,6 +52,7 @@ class Options:
         #                     Running options
         # ===============================================================
         self.parser.add_argument('--input_n', type=int, default=50, help='past frame number')
+        self.parser.add_argument('--input_n_run', type=int, default=50, help='past frame number')
         self.parser.add_argument('--output_n', type=int, default=25, help='future frame number')
         self.parser.add_argument('--dct_n', type=int, default=10, help='future frame number')
         self.parser.add_argument('--lr_now', type=float, default=0.0005)

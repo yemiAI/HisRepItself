@@ -93,21 +93,42 @@ class Animation:
         # Update rolling graphs
         self.update_rolling_graph(frame)
 
+
     def update_rolling_graph(self, frame):
         try:
             # Extract the relevant rows for the current frame
-            row_data_5 = self.rolling_data.iloc[frame - 50:frame + 50, 5]
-            row_data_5_2 = self.rolling_data_2.iloc[frame - 50:frame + 50, 5]
+            if frame < 50:
+                row_data_5 = np.zeros([100])
+                row_data_5_2 = np.zeros([100])
+
+                #foot = np.zeros([100])
+                row_data_5[50 - frame:100] = self.rolling_data.iloc[0:frame + 50, 5]
+                row_data_5_2[50 - frame:100] = self.rolling_data_2.iloc[0:frame + 50, 5]
+                #foot[50 - frame:100] = self.foot_anchor.iloc[0:frame + 50, 5]
+            else:
+                row_data_5 = self.rolling_data.iloc[frame - 50:frame + 50, 5]
+                row_data_5_2 = self.rolling_data_2.iloc[frame - 50:frame + 50, 5]
+                #foot = self.foot.iloc[frame - 50:frame + 50, 5]
 
             # Update combined rolling graph
             self.rolling_line.set_data(range(1, len(row_data_5) + 1), row_data_5)
             self.rolling_line_2.set_data(range(1, len(row_data_5_2) + 1), row_data_5_2)
+
+            # Update foot anchors
+            x_list = [i - frame + 50 for i in foot_list if (i > frame - 50 and i <= frame + 50)]
+            #y_list = [row_data_5[i] for i in x_list]
+            y_list = [row_data_5_2[i - (frame - 50)] for i in foot_list if (i > frame - 50 and i < frame + 50)]
+            self.foot_anchor.set_data(x_list, y_list)
+            print('x_list is', x_list)
+            print('y_list is', y_list)
+            #exit(0)
             self.rolling_ax.relim()
             self.rolling_ax.autoscale_view()
             self.rolling_ax.axline([50, 0], [50, 30], color="orange")
 
         except Exception as e:
             print(f"Error updating rolling graph: {e}")
+
 
     def toggle_pause(self, *args, **kwargs):
         if self.paused:
@@ -116,11 +137,9 @@ class Animation:
             self.ani.pause()
         self.paused = not self.paused
 
-    def __init__(self, animations, rolling_file, rolling_file_2, dots=True, skellines=False, scale=1.0,
-                 unused_bones=True,
-                 pauseatframe=-1, save=None):
-        self.fig = plt.figure(figsize=(10, 10), facecolor='white',
-                              edgecolor='white')  # Adjust the figure size as needed
+    def __init__(self, animations, rolling_file, rolling_file_2, labels, dots=True, skellines=False, scale=1.0,
+                 unused_bones=True, pauseatframe=-1, save=None, foot_anchor=[]):
+        self.fig = plt.figure(figsize=(14, 7), facecolor='white', edgecolor='white')  # Adjust the figure size as needed
         self.skellines = skellines
         self.dots = dots
         self.scale = scale
@@ -134,11 +153,11 @@ class Animation:
         self.animdots = []
         self.savefile = save
         self.rolling_texts = []
+        self.foot_anchor = foot_anchor
 
         for idx, adata in enumerate(self.animdata):
-            # Place the main animation at the top
-            self.fig.suptitle('H3.6m S5 walking 1')
-            self.ax.append(self.fig.add_axes([0.1, 0.38, 0.8, 0.52], projection='3d'))  # [left, bottom, width, height]
+            # Create subplots for each animation
+            self.ax.append(self.fig.add_subplot(1, 2, idx + 1, projection='3d'))
             self.animlines.append([])
             idata = adata.df[adata.df['time'] == 0]
             if (self.skellines):
@@ -155,19 +174,22 @@ class Animation:
             self.ax[idx].set_zticks([i for i in range(-1000, 1000, 250)], ["" for i in range(-1000, 1000, 250)])
 
             self.ax[idx].view_init(elev=147, azim=-90, roll=0)
+            self.ax[idx].set_title(labels[idx])
 
-        # Add a single rolling graph with two lines
-        self.rolling_ax = self.fig.add_axes([0.1, 0.15, 0.8, 0.22])  # [left, bottom, width, height]
-        self.rolling_line, = self.rolling_ax.plot([], [], marker='.', linestyle='-', label=' S5_walking_1_MPJPE')
+        # Add a single rolling graph with two lines below the animations
+        self.rolling_ax = self.fig.add_axes([0.1, 0.05, 0.8, 0.22])  # [left, bottom, width, height]
+        self.rolling_line, = self.rolling_ax.plot([], [], marker='.', linestyle='-', label='S5_walking_1_MPJPE')
         self.rolling_line_2, = self.rolling_ax.plot([], [], marker='.', linestyle='-', label='S5_walking_1_ret_inter_MPJPE', color='green')
         self.rolling_ax.set_xlim(0, 100)  # Adjust limits based on your data
         self.rolling_ax.set_ylim(0, 100)  # Adjust limits based on your data
         self.rolling_ax.set_xticks([i for i in range(0, 101, 10)], [i - 50 for i in range(0, 101, 10)])
-        self.rolling_ax.set_title('Frame 5 predictions', loc='right', fontsize=10)
+        self.rolling_ax.set_title('Frame 1 predictions', loc='right', fontsize=10)
         self.rolling_ax.legend()
 
         self.rolling_file = rolling_file
         self.rolling_file_2 = rolling_file_2
+
+        self.foot_anchor, = self.rolling_ax.plot([], [],  marker='.', linestyle='None', markersize=25, label='Foot Anchors', color='red')  # Initialize foot anchor plot
 
         try:
             # Read the initial rolling graph data from CSV, skipping the first column
@@ -189,13 +211,14 @@ class Animation:
         self.fig.canvas.mpl_connect('button_press_event', self.toggle_pause)
 
         # Add shared X and Y labels
-        self.fig.text(0.5, 0.10, 'Frame Offsets', ha='center', va='center')
-        self.fig.text(0.048, 0.26, 'MPJPE', ha='center', va='center', rotation='vertical')
+        self.fig.text(0.5, 0.02, 'Frame Offsets', ha='center', va='center')
+        self.fig.text(0.02, 0.5, 'MPJPE', ha='center', va='center', rotation='vertical')
 
         if self.savefile:
             self.ani.save(filename=self.savefile, writer="ffmpeg", fps=30)
 
         plt.show()
+
 
 
 def phase(keypoints):
@@ -224,6 +247,8 @@ class Loader:
         return rotmat2xyz_torch(rm)
 
 
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--scale", type=int, help="Scaling factor", default=1000.0)
@@ -234,25 +259,56 @@ if __name__ == '__main__':
     parser.add_argument("--model_pth", type=str, help="Draw a skel")
     parser.add_argument("--padzeros", action='store_true', help="zero padding")
     parser.add_argument("--save", type=str, help="save the output of a model")
-    parser.add_argument("--file", type=str)
+    parser.add_argument("--file1", type=str, required=True, help="First CSV file")
+    parser.add_argument("--file2", type=str, required=True, help="Second CSV file")
+    parser.add_argument("--foot_anchor", type=str, required=True, help="Foot anchor positions")
+    parser.add_argument("--label1", type=str, required=True, help="Label for the first animation")
+    parser.add_argument("--label2", type=str, required=True, help="Label for the second animation")
     parser.add_argument("--rolling_file", type=str, help="CSV file for rolling graph", required=True)
     parser.add_argument("--rolling_file_2", type=str, help="CSV file for rolling graph", required=True)
 
     args = parser.parse_args()
 
-    l = Loader(args.file)
-    l_copy = l.nvals.copy()
+    l1 = Loader(args.file1)
+    l2 = Loader(args.file2)
+
     if args.padzeros:
-        zeros = np.zeros([l.nvals.shape[0], 1, 3])
-        pred = np.append(zeros, l_copy, axis=1)
+        zeros1 = np.zeros([l1.nvals.shape[0], 1, 3])
+        zeros2 = np.zeros([l2.nvals.shape[0], 1, 3])
+        pred1 = np.append(zeros1, l1.nvals.copy(), axis=1)
+        pred2 = np.append(zeros2, l2.nvals.copy(), axis=1)
     else:
-        gt = l.nvals
+        pred1 = l1.nvals
+        pred2 = l2.nvals
+
+    labels = [args.label1, args.label2]
+
+    h36_anno_dict = {}
+    with open('human3.6_retimed_interpolation_annotation.csv') as h36_anno:
+        reader = csv.reader(h36_anno)
+        header = True
+        for row in reader:
+            if (header):
+                header = False
+            else:
+                # annotations = row['dataset'][:-4], row['period']
+                dataset = row[0][:-4]
+                #print(row)
+                manual= [int(i) for i in row[2:] if len(i) > 0]
+                period = float(row[1])
+                h36_anno_dict[dataset] = {'period' : period, 'manual' : manual}
+                #print(period)
+
+    if args.foot_anchor == 'periodic':
+        p = h36_anno_dict['walking1_s5']['period']
+        foot_list = [int(p) * i for i in np.arange(0, len(h36_anno_dict['walking1_s5']['manual']))]
+    else:
+        foot_list = h36_anno_dict['walking1_s5']['manual']
+
 
     if args.keypoint:
-        anim = Animation([pred], args.rolling_file, args.rolling_file_2, dots=not args.nodots, skellines=args.lineplot,
-                         scale=args.scale,
-                         save=args.save)
+        anim = Animation([pred1, pred2], args.rolling_file, args.rolling_file_2, labels=labels, dots=not args.nodots, skellines=args.lineplot,
+                         scale=args.scale, save=args.save, foot_anchor=foot_list)
     else:
-        anim = Animation([l.xyz()], args.rolling_file, args.rolling_file_2, dots=not args.nodots,
-                         skellines=args.lineplot, scale=args.scale,
-                         save=args.save)
+        anim = Animation([l1.xyz(), l2.xyz()], args.rolling_file, args.rolling_file_2, labels=labels, dots=not args.nodots,
+                         skellines=args.lineplot, scale=args.scale, save=args.save, foot_anchor=foot_list)

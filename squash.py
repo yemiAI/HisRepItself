@@ -24,7 +24,7 @@ path_template1 = "S%s"
 path_template2 = "%s_%s.txt"
 file_pattern = "(.+)([12])_s([0-9]+).txt"
 csv_file_annoation = 'human3.6_retimed_interpolation_annotation_working.csv'
-csv_file_mpjpe ='S5_walking_1_retimed_interpolation_MPJPE_working.csv'
+csv_file_mpjpe ='mpjpe_singlefile_retimed_interpolation0.txt'
 def interpolation(dataset, anchors_to, anchors_from):
 
     out_f = anchors_to[-2]# number of steps
@@ -87,6 +87,6 @@ out_array = np.zeros([rescaled_errors.shape[0], 11])
 out_array[:, 0] = transposed_fix
 out_array[:, 1:] = rescaled_errors
 
-np.savetxt('interpolated_errors.csv', out_array, delimiter= ",")
+np.savetxt('interpolated_errors_S5_rescale.csv', out_array, delimiter= ",")
 #print(data_values.shape)
 
