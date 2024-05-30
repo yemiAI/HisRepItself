@@ -18,13 +18,11 @@ import argparse
 
 annotation = {}
 annotation_footanchor = {}
-in_file = "datasets/h3.6m_retimed_interpolation_nozero_anno_train/S5/walking_1.txt"
-#out_file= "datasets/h3.6m_retimed_interpolation_annotation_ano/S5/walking_1.txt"
 path_template1 = "S%s"
 path_template2 = "%s_%s.txt"
 file_pattern = "(.+)([12])_s([0-9]+).txt"
 csv_file_annoation = 'human3.6_retimed_interpolation_annotation_working.csv'
-csv_file_mpjpe ='mpjpe_singlefile_retimed_interpolation0.txt'
+csv_file_mpjpe ='testwave_variable.csv'
 def interpolation(dataset, anchors_to, anchors_from):
 
     out_f = anchors_to[-2]# number of steps
@@ -33,13 +31,19 @@ def interpolation(dataset, anchors_to, anchors_from):
     big_array = np.zeros([int(out_f), dataset.shape[1]])
     for idx, sframe in enumerate(anchors_from[:-2]):
         eframe = anchors_from[idx + 1]
+
         input_step = dataset[sframe:eframe + 1, :]
 
         output_step_start = anchors_to[idx]
         output_step_end = anchors_to[idx + 1]
 
         input_step_size = eframe - sframe
+        if (input_step.shape[0] <= input_step_size):
+            continue
+        print("Input step vs size: ", input_step.shape[0], input_step_size)
+
         for i in range(output_step_end - output_step_start):
+
             t_prime = i * input_step_size / (output_step_end - output_step_start)
             t_prime_before = math.floor(t_prime)
             t_prime_after = math.ceil(t_prime)
@@ -50,6 +54,7 @@ def interpolation(dataset, anchors_to, anchors_from):
                 big_array[output_frame_line, :] = input_step[t_prime_before, :]
 
             else:
+                #print (sframe, eframe, input_step.shape)
                 expmap_first_frame_0 = input_step[t_prime_before, :]
                 expmap_second_frame_0 = input_step[t_prime_after, :]
 
@@ -64,7 +69,7 @@ with open(csv_file_annoation, 'r') as file:
 
          if len(row)> 1:
              annotation[row[0]] = { 'period' : math.floor(float(row[1])), 'foot_anchors' : [int (c) for c in row[2:] if len(c) > 0]}
-target = annotation['walking1_s5.txt']
+target = annotation['testwave_variable.txt']
 retimed_anchors = [target['period'] * i for i in range(len(target['foot_anchors']))]
 
 
@@ -78,7 +83,8 @@ with open(csv_file_mpjpe, 'r') as file:
         data.append([float(c) for c in row[1:] if len(c) > 0])
     data_values = np.array(data)
 
-rescaled_errors = interpolation(data_values, target['foot_anchors'], retimed_anchors)
+#rescaled_errors = interpolation(data_values, target['foot_anchors'], retimed_anchors)
+rescaled_errors = interpolation(data_values, retimed_anchors, target['foot_anchors'])
 print(data_values.shape)
 print(rescaled_errors)
 transposed_fix = np.expand_dims(np.arange(rescaled_errors.shape[0]), 0)
@@ -86,7 +92,7 @@ transposed_fix = np.expand_dims(np.arange(rescaled_errors.shape[0]), 0)
 out_array = np.zeros([rescaled_errors.shape[0], 11])
 out_array[:, 0] = transposed_fix
 out_array[:, 1:] = rescaled_errors
-
-np.savetxt('interpolated_errors_S5_rescale.csv', out_array, delimiter= ",")
+np.savetxt('interpolated_errors_testwave_73.csv', out_array, delimiter= ",")
+#np.savetxt('interpolated_errors_S5_original_to_retimed.csv', out_array, delimiter= ",")
 #print(data_values.shape)
 

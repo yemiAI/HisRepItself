@@ -23,47 +23,44 @@ class Loader:
     #     return rotmat2xyz_torch(rm)
 
 
-def interpolation(inputfile, outputfile, datafile):
+def interpolation(inputfile, outputfile, foot_anchors_from, foot_anchors_to ):
     loader = Loader(inputfile)
     exp_size_a = np.linalg.norm(loader.nvals, axis=2)
-    period = annotation[datafile]['period']
-    rotation_axis = R.from_rotvec(loader.nvals[2, 2], degrees=False)
-    out_f = len(annotation[datafile]['foot_anchors']) * annotation[datafile]['period']  # number of steps
-    big_array = np.zeros([int(out_f) ,33, 3])
-    for idx, sframe in enumerate(annotation[datafile]['foot_anchors'][:-1]):
-        eframe = annotation[datafile]['foot_anchors'][idx + 1]
+    #period = annotation[foot_anchors_from]['period']
+
+    #print(period)
+    #exit(0)
+    # rotation_axis = R.from_rotvec(loader.nvals[2, 2], degrees=False)
+    out_f = foot_anchors_to[-1]  # number of steps
+    big_array = np.zeros([int(out_f), 33, 3])
+    for idx, sframe in enumerate(foot_anchors_from[:-1]):
+        eframe = foot_anchors_from[idx + 1]
 
         input_step = loader.nvals[sframe:eframe+1, :, :]
-        output_step_start = period * idx
+        output_step_start = foot_anchors_to[idx]
         #print(output_step_start)
-        output_step_end = period *(idx + 1)
+        output_step_end = foot_anchors_to[idx + 1]
         #print(output_step_end)
-
+        #exit(0)
+        output_step_size = output_step_end - output_step_start
         input_step_size = eframe - sframe
-        for i in range(period):
-            t_prime = i * input_step_size / (output_step_end - output_step_start)
-            #print(t_prime)
-
+        for i in range(output_step_size):
+            t_prime = i * input_step_size / output_step_size
             t_prime_before = math.floor(t_prime)
-            #print("before",t_prime_before)
             t_prime_after = math.ceil(t_prime)
-            #print("after", t_prime_after)
             t = t_prime - t_prime_before
-            #print("This is T ",t)
-
             output_frame_line = output_step_start + i
-
             if t== 0:
-
                 big_array[output_frame_line, :, :] = input_step[t_prime_before, :, :]
 
             else:
                 expmap_first_frame_0 = input_step[t_prime_before ,0 ,:]
                 expmap_second_frame_0 = input_step[t_prime_after, 0, :]
 
-                bone_0 = (1-t) * expmap_first_frame_0
+                #bone_0 = (1-t) * expmap_first_frame_0
                 interpo = (1-t) * expmap_first_frame_0 + t * expmap_second_frame_0
                 big_array[output_frame_line, 0, :] = interpo
+
             #print(output_frame_line)
             for b in range(1, 33):
                 expmap_first_frame = input_step[t_prime_before ,b ,:]
@@ -96,7 +93,7 @@ def interpolation(inputfile, outputfile, datafile):
 
 
 
-in_base_path = "datasets/h3.6m_periodic"
+in_base_path = "datasets/h3.6m_retimed_interpolation_nozero_anno_train"
 out_base_path = "datasets/MPJPE_squashed"
 
 
@@ -119,6 +116,8 @@ with open(csv_file, 'r') as file:
 
         if len(row)> 1:            
             annotation[row[0]] = { 'period' : math.floor(float(row[1])), 'foot_anchors' : [int (c) for c in row[2:] if len(c) > 0]}
+            #print(annotation[row[0]])
+            #exit(0)
 
             m = re.match(file_pattern, row[0])
             if (m):
@@ -128,7 +127,10 @@ with open(csv_file, 'r') as file:
                 input_path = os.path.join(in_base_path, path_template1 % (subject),
                                           path_template2 % (action, subaction))
                 print("Successfully built path %s" % output_path)
-                interpolation(input_path, output_path, row[0])
+
+                retimed_anchors = [annotation[row[0]]['period'] * i for i in range(len(annotation[row[0]]['foot_anchors']))]
+
+                interpolation(input_path, output_path, retimed_anchors, annotation[row[0]]['foot_anchors'])
             else:
                 print("Failure reading %s" % row[0])
 
