@@ -22,7 +22,7 @@ path_template1 = "S%s"
 path_template2 = "%s_%s.txt"
 file_pattern = "(.+)([12])_s([0-9]+).txt"
 csv_file_annoation = 'human3.6_retimed_interpolation_annotation_working.csv'
-csv_file_mpjpe ='testwave_variable.csv'
+csv_file_mpjpe ='S5_walking_1_MPJPE_annotated.csv'
 def interpolation(dataset, anchors_to, anchors_from):
 
     out_f = anchors_to[-2]# number of steps
@@ -69,7 +69,7 @@ with open(csv_file_annoation, 'r') as file:
 
          if len(row)> 1:
              annotation[row[0]] = { 'period' : math.floor(float(row[1])), 'foot_anchors' : [int (c) for c in row[2:] if len(c) > 0]}
-target = annotation['testwave_variable.txt']
+target = annotation['walking1_s5.txt']
 retimed_anchors = [target['period'] * i for i in range(len(target['foot_anchors']))]
 
 
@@ -92,7 +92,8 @@ transposed_fix = np.expand_dims(np.arange(rescaled_errors.shape[0]), 0)
 out_array = np.zeros([rescaled_errors.shape[0], 11])
 out_array[:, 0] = transposed_fix
 out_array[:, 1:] = rescaled_errors
-np.savetxt('interpolated_errors_testwave_73.csv', out_array, delimiter= ",")
-#np.savetxt('interpolated_errors_S5_original_to_retimed.csv', out_array, delimiter= ",")
+#np.savetxt('interpolated_errors_test_wave_73.csv', out_array, delimiter= ",")
+#np.savetxt('interpolated_errors_S5_original_to_retimed_annotated.csv', out_array, delimiter= ",")
+np.savetxt('try_2.csv', out_array, delimiter= ",")
 #print(data_values.shape)
 

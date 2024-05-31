@@ -132,12 +132,12 @@ class Animation:
                 row_data_5_2 = np.zeros([100])
 
                 #foot = np.zeros([100])
-                row_data_5[50 - frame:100] = self.rolling_data.iloc[0:frame + 50, 2]
-                row_data_5_2[50 - frame:100] = self.rolling_data_2.iloc[0:frame + 50, 2]
+                row_data_5[50 - frame:100] = self.rolling_data.iloc[0:frame + 50, 5]
+                row_data_5_2[50 - frame:100] = self.rolling_data_2.iloc[0:frame + 50, 5]
                 #foot[50 - frame:100] = self.foot_anchor.iloc[0:frame + 50, 5]
             else:
-                row_data_5 = self.rolling_data.iloc[frame - 50:frame + 50, 2]
-                row_data_5_2 = self.rolling_data_2.iloc[frame - 50:frame + 50, 2]
+                row_data_5 = self.rolling_data.iloc[frame - 50:frame + 50, 5]
+                row_data_5_2 = self.rolling_data_2.iloc[frame - 50:frame + 50, 5]
                 #foot = self.foot.iloc[frame - 50:frame + 50, 5]
 
             # Update combined rolling graph
@@ -212,7 +212,7 @@ class Animation:
         # Add a single rolling graph with two lines below the animations
         self.rolling_ax = self.fig.add_axes([0.1, 0.05, 0.8, 0.22])  # [left, bottom, width, height]
         self.rolling_line, = self.rolling_ax.plot([], [], marker='.', linestyle='-', label='mpjpe_h3.6m_retimed_interpolation')
-        self.rolling_line_2, = self.rolling_ax.plot([], [], marker='.', linestyle='-', label='interpolated_errors_S5_original_to_retimed', color='green')
+        self.rolling_line_2, = self.rolling_ax.plot([], [],  marker='.', linestyle='-', label='interpolated_errors_S5_original_to_retimed', color='green')
         self.rolling_line_3, = self.rolling_ax.plot([], [], marker='None', linestyle='-', label = 'foot_anchor', color= '#980002')  # Add your new plot line here
         self.rolling_ax.set_xlim(0, 100)  # Adjust limits based on your data
         self.rolling_ax.set_ylim(0, 100)  # Adjust limits based on your data

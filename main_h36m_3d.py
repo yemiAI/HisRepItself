@@ -308,8 +308,8 @@ def mpjpe_dump(opt= None):
         results[i, 0] = i
         results[i, 1:] = single_file_mpjpes
 
-        np.savetxt("try.txt", results, delimiter=',')
-        # np.savetxt("mpjpe_h3.6m_periodic_S5_walking_1.txt", results, delimiter=',')
+        np.savetxt("MPJPE_periodic_s5_walking_1.txt", results, delimiter=',')
+        #np.savetxt("mpjpe_h3.6m_periodic_S5_walking_1.txt", results, delimiter=',')
         print("MPJPE results saved to mpjpe_singlefile0.txt")
 
 def run_model(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1, opt=None):
