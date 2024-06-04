@@ -410,7 +410,7 @@ def run_model(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1, opt
     return ret
 
 
-def run_model_fold(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1, opt=None):
+def run_model_fold(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1, opt=None, offset=0):
     if is_train == 0:
         net_pred.train()
     else:
@@ -456,11 +456,34 @@ def run_model_fold(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1
             [-1, seq_in + out_n, len(dim_used) // 3, 3])
         # slice1
         p3d_src = p3d_h36.clone()[:, :, dim_used]
-        #slice2
-        p3d_src_copy = p3d_src
-        #fold model
-        p3d_src_fold = torch.cat((p3d_src, p3d_src_copy), dim = 2)
 
+        #ano = ano.cpu().detach().numpy()
+        #print(ano)
+        #exit(0)
+
+        p3d_src_slice_his = torch.zeros([p3d_src.shape[0], in_n + out_n, p3d_src.shape[2]]).cuda()
+        for i, p in enumerate(ano):
+
+            p3d_src_slice_his[i, :, :] = p3d_src[i, -in_n-out_n-p-offset:-p-offset, :]
+
+            #print(p3d_src_slice_his.shape)
+            #exit(0)
+        p3d_src_slice_updated = p3d_src[:, -in_n-out_n:, :]
+
+        #p3d_src_slice_updated = torch.from_numpy(p3d_src_slice_updated)
+        #print(p3d_src_slice_updated.shape)
+        #exit(0)
+
+
+        # print(p3d_src_slice_updated.shape)
+        # exit(0)
+        # #slice2
+        # p3d_src_copy = p3d_src
+        # #fold model
+        p3d_src_fold = torch.cat((p3d_src_slice_updated, p3d_src_slice_his), dim = 2)
+
+        #print(p3d_src_fold.shape)
+        #exit(0)
         p3d_out_all = net_pred(p3d_src_fold, input_n=in_n, output_n=out_n, itera=itera)
         #print("p3d_out_all model out", p3d_out_all.shape)
         p3d_out = p3d_h36.clone()[:, in_n:in_n + out_n]
@@ -488,34 +511,16 @@ def run_model_fold(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1
             # update log values
             l_p3d += loss_p3d.cpu().data.numpy() * batch_size
 
-        # if is_train <= 1:  # if is validation or train simply output the overall mean error
-        #     mpjpe_p3d_h36 = torch.mean(torch.norm(p3d_h36_slice[:, -out_n:] - p3d_out, dim=3))
-        #     m_p3d_h36 += mpjpe_p3d_h36.cpu().data.numpy() * batch_size
-        # else:
-        #     mpjpe_p3d_h36 = torch.sum(torch.mean(torch.norm(p3d_h36_slice[:, -out_n:] - p3d_out, dim=3), dim=2), dim=0)
-        #     m_p3d_h36 += mpjpe_p3d_h36.cpu().data.numpy()
-        # if i % 1000 == 0:
-        #     print('{}/{}|bt {:.3f}s|tt{:.0f}s|gn{}'.format(i + 1, len(data_loader), time.time() - bt,
-        #                                                    time.time() - st, grad_norm))
-        if is_train == 0:
-            loss_p3d = torch.mean(torch.norm(p3d_out_all[:, :, 0] - p3d_sup, dim=3))
-            loss_all = loss_p3d
-            optimizer.zero_grad()
-            loss_all.backward()
-            nn.utils.clip_grad_norm_(list(net_pred.parameters()), max_norm=opt.max_norm)
-            optimizer.step()
-            # update log values
-            l_p3d += loss_p3d.cpu().data.numpy() * batch_size
-
         if is_train <= 1:  # if is validation or train simply output the overall mean error
-            mpjpe_p3d_h36 = torch.mean(torch.norm(p3d_h36[:, in_n:in_n + out_n] - p3d_out, dim=3))
+            mpjpe_p3d_h36 = torch.mean(torch.norm(p3d_h36_slice[:, -out_n:] - p3d_out, dim=3))
             m_p3d_h36 += mpjpe_p3d_h36.cpu().data.numpy() * batch_size
         else:
-            mpjpe_p3d_h36 = torch.sum(torch.mean(torch.norm(p3d_h36[:, in_n:] - p3d_out, dim=3), dim=2), dim=0)
+            mpjpe_p3d_h36 = torch.sum(torch.mean(torch.norm(p3d_h36_slice[:, -out_n:] - p3d_out, dim=3), dim=2), dim=0)
             m_p3d_h36 += mpjpe_p3d_h36.cpu().data.numpy()
         if i % 1000 == 0:
             print('{}/{}|bt {:.3f}s|tt{:.0f}s|gn{}'.format(i + 1, len(data_loader), time.time() - bt,
                                                            time.time() - st, grad_norm))
+
     ret = {}
     # print(ret)
     # exit(0)
