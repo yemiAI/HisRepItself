@@ -39,6 +39,17 @@ class Datasets(Dataset):
         self.path_to_data = "./datasets/%s/"%(opt.dataset)
         self.split = split
 
+        self.augmentation = ['none']
+        if opt.flip_x:
+
+            #self.augmentation.append('') = ['flipx']
+
+            pass
+        elif opt.flip_z:
+
+            # self.augmentation.append('') = ['flipz']
+            pass
+
         self.in_n = opt.input_n_run
         self.out_n = opt.output_n
         self.sample_rate = 2
@@ -95,16 +106,26 @@ class Datasets(Dataset):
                         p3d = data_utils.expmap2xyz_torch(the_sequence)
                         # self.p3d[(subj, action, subact)] = p3d.view(num_frames, -1).cpu().data.numpy()
                         self.p3d[key] = p3d.view(num_frames, -1).cpu().data.numpy()
+                        print(self.p3d[key].shape)
+                        #exit(0)
 
                         valid_frames = np.arange(0, num_frames - seq_len + 1, opt.skip_rate)
-
                         # tmp_data_idx_1 = [(subj, action, subact)] * len(valid_frames)
-                        tmp_data_idx_1 = [key] * len(valid_frames)
+                        tmp_data_idx_1 = [key] * len(valid_frames) * len(self.augmentation)
                         #print(tmp_data_idx_1.shape)
                         #exit(0)
-                        tmp_data_idx_2 = list(valid_frames)
-                        tmp_data_idx_3 = [period] * len(valid_frames)
-                        self.data_idx.extend(zip(tmp_data_idx_1, tmp_data_idx_2, tmp_data_idx_3))
+                        tmp_data_idx_2a = list(valid_frames)
+                        tmp_data_idx_2 = []
+
+                        qq = [[q] * len(self.augmentation) for q in tmp_data_idx_2a]
+                        for z in qq:
+                            tmp_data_idx_2.extend(z)
+
+                        tmp_data_idx_3 = [period] * len(valid_frames) * len(self.augmentation)
+                        tmp_data_idx_4 = self.augmentation * len(valid_frames)
+
+
+                        self.data_idx.extend(zip(tmp_data_idx_1, tmp_data_idx_2, tmp_data_idx_3, tmp_data_idx_4))
                         #print(self.data_idx)
                         key += 1
                 else:
@@ -175,8 +196,30 @@ class Datasets(Dataset):
         return np.shape(self.data_idx)[0]
 
     def __getitem__(self, item):
-        key, start_frame, period = self.data_idx[item]
-        #print(key, start_frame, period)
-        #exit(0)
+
+        key, start_frame, period, augmentation = self.data_idx[item]
+
         fs = np.arange(start_frame, start_frame + self.in_n + self.out_n)
+
+        if augmentation == 'flip_x':
+
+            animation = self.p3d[key][fs]
+            animation = animation.reshape([-1, 32, 3])
+            x_component = animation[0] * -1
+            print(x_component)
+
+            #exit(0)
+            pass
+        elif augmentation == 'flip_z':
+
+            #flip_z = flipz(animation)
+            animation = self.p3d[key][fs]
+            animation = animation.reshape([-1, 32, 3])
+            z_component = animation[2] * -1
+            print(z_component)
+
+        else:
+            pass
+        # no flip
+
         return self.p3d[key][fs], period

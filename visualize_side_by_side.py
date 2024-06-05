@@ -74,12 +74,14 @@ class AnimationData:
 
 
 class Animation:
-    def drawlines(self, aidx, frame, color='#015482'):
-        print("Drawn stickman with colour %s"%color)
-        linex, liney, linez = self.animdata[0].build_lines(frame)
+    def drawlines(self, aidx, frame):
+        #print("Drawn stickman with colour %s"%color)
+        linex, liney, linez = self.animdata[aidx].build_lines(frame)
+        #linex, liney, linez = self.animdata[0].build_lines(frame)
         for idx in range(len(linex)):
             # Plot the main line with default color and no blur
-            self.animlines[0].append(self.ax[0].plot(linex[idx], liney[idx], linez[idx], color=color, alpha=1.0))
+            self.animlines[aidx].append(self.ax[aidx].plot(linex[idx], liney[idx], linez[idx]))
+            # self.animlines[0].append(self.ax[0].plot(linex[idx], liney[idx], linez[idx], color=color, alpha=1.0))
 
             #Create a blur effect by plotting multiple lines with decreasing alpha and slight offsets
             # for offset in np.linspace(-0.05, 0.05, 10):
@@ -101,25 +103,27 @@ class Animation:
         self.framecounter.set_text("frame=%d" % frame)
         count = 0
         for aidx, adata in enumerate(self.animdata):
-            if self.skellines:
+            if (self.skellines):
                 linex, liney, linez = adata.build_lines(frame)
                 for idx in range(len(linex)):
+                    self.animlines[aidx][idx][0].set_data_3d(linex[idx], liney[idx], linez[idx])
+                if self.dots:
+                    newdata = adata.df[adata.df['time'] == frame]
+                    self.animdots[aidx]._offsets3d = (newdata.x, newdata.y, newdata.z)
                     # Update the main line
                     xlist = [aidx + x for x in linex[idx]]
                     #xlist = [100.0*aidx + x for x in linex[idx]]
-                    self.animlines[0][count][0].set_data(xlist, liney[idx])
-                    # self.animlines[0][count][0].set_data(linex[idx], liney[idx])
-                    self.animlines[0][count][0].set_3d_properties(linez[idx])
-                    count += 1
+                    # self.animlines[0][count][0].set_data(xlist, liney[idx])
+                    # # self.animlines[0][count][0].set_data(linex[idx], liney[idx])
+                    # self.animlines[0][count][0].set_3d_properties(linez[idx])
+                    # count += 1
                     # Update the blur effect lines with slight offsets
                     # for offset in np.linspace(-0.05, 0.05, 10):
                     #     self.animlines[0][count][0].set_data(np.array(linex[idx]) + offset,
                     #                                          np.array(liney[idx]) + offset)
                     #     self.animlines[0][count][0].set_3d_properties(np.array(linez[idx]) + offset)
                     #     count += 1
-            if self.dots:
-                newdata = adata.df[adata.df['time'] == frame]
-                self.animdots[0]._offsets3d = (newdata.x, newdata.y, newdata.z)
+
 
         # Update rolling graphs
         self.update_rolling_graph(frame)
@@ -145,15 +149,15 @@ class Animation:
             self.rolling_line_2.set_data(range(1, len(row_data_5_2) + 1), row_data_5_2)
 
             # Update foot anchors
-            x_list = [i - frame + 50 for i in foot_list if (i > frame - 50 and i < frame + 50)]
+            #x_list = [i - frame + 50 for i in foot_list if (i > frame - 50 and i < frame + 50)]
             #y_list = [row_data_5[i] for i in x_list]
             #y_list = [row_data_5_2[i - (frame - 50)] for i in foot_list if (i > frame - 50 and i < frame + 50)]
-            y_list = [0 for i in x_list]
-            self.foot_anchor.set_data(x_list, y_list)
+            #y_list = [0 for i in x_list]
+            #self.foot_anchor.set_data(x_list, y_list)
             #exit(0)
             self.rolling_ax.relim()
             self.rolling_ax.autoscale_view()
-            self.rolling_ax.axline([50, 0], [50, 30], color="#f0944d")
+            self.rolling_ax.axline([0, 0], [0, 30], color="#f0944d")
 
         except Exception as e:
             print(f"Error updating rolling graph: {e}")
@@ -167,7 +171,7 @@ class Animation:
         self.paused = not self.paused
 
     def __init__(self, animations, rolling_file, rolling_file_2, labels, dots=True, skellines=False, scale=1.0,
-                 unused_bones=True, pauseatframe=-1, save=None, foot_anchor=[]):
+                 unused_bones=True, pauseatframe=-1, save=None):
         self.fig = plt.figure(figsize=(14, 7), facecolor='white', edgecolor='white')  # Adjust the figure size as needed
         self.skellines = skellines
         self.dots = dots
@@ -182,48 +186,49 @@ class Animation:
         self.animdots = []
         self.savefile = save
         self.rolling_texts = []
-        self.foot_anchor = foot_anchor
+        #self.foot_anchor = foot_anchor
 
-        self.ax.append(self.fig.add_subplot(1, 1, 1, projection='3d'))
+        #self.ax.append(self.fig.add_subplot(1, 1, 1, projection='3d'))
         #self.ax = self.fig.add_axes([0.1, 0.55, 0.8, 0.42])
 
         for idx, adata in enumerate(self.animdata):
             # Create subplots for each animation
-            # self.ax.append(self.fig.add_subplot(1, 2, idx + 1, projection='3d'))
+            self.ax.append(self.fig.add_subplot(1, 2, idx + 1, projection='3d'))
             self.animlines.append([])
             idata = adata.df[adata.df['time'] == 0]
             if (self.skellines):
                 print("Drawing stickman %d"%idx)
-                self.drawlines(idx, 0, color = stickmancolours[idx])
+                self.drawlines(idx, 0)
+                #self.drawlines(idx, 0, color = stickmancolours[idx])
             if (self.dots):
-                self.animdots.append(self.ax[0].scatter(idata.x, idata.y, idata.z))
-            self.ax[0].set_xlim(-self.scale, self.scale)
-            self.ax[0].set_ylim(-self.scale, self.scale)
-            self.ax[0].set_zlim(-self.scale, self.scale)
-            self.ax[0].grid(visible=True)
+                self.animdots.append(self.ax[idx].scatter(idata.x, idata.y, idata.z))
+            self.ax[idx].set_xlim(-self.scale, self.scale)
+            self.ax[idx].set_ylim(-self.scale, self.scale)
+            self.ax[idx].set_zlim(-self.scale, self.scale)
+            self.ax[idx].grid(visible=True)
 
-            self.ax[0].set_xticks([i for i in range(-1000, 1000, 250)], ["" for i in range(-1000, 1000, 250)])
-            self.ax[0].set_yticks([i for i in range(-1000, 1000, 250)], ["" for i in range(-1000, 1000, 250)])
-            self.ax[0].set_zticks([i for i in range(-1000, 1000, 250)], ["" for i in range(-1000, 1000, 250)])
+            self.ax[idx].set_xticks([i for i in range(-1000, 1000, 250)], ["" for i in range(-1000, 1000, 250)])
+            self.ax[idx].set_yticks([i for i in range(-1000, 1000, 250)], ["" for i in range(-1000, 1000, 250)])
+            self.ax[idx].set_zticks([i for i in range(-1000, 1000, 250)], ["" for i in range(-1000, 1000, 250)])
 
-            self.ax[0].view_init(elev=147, azim=-90, roll=0)
-            self.ax[0].set_title(labels[0])
+            self.ax[idx].view_init(elev=147, azim=-90, roll=0)
+            self.ax[idx].set_title(labels[0])
 
         # Add a single rolling graph with two lines below the animations
         self.rolling_ax = self.fig.add_axes([0.1, 0.05, 0.8, 0.22])  # [left, bottom, width, height]
-        self.rolling_line, = self.rolling_ax.plot([], [], marker='.', linestyle='-', label='mpjpe_h3.6m_retimed_interpolation')
-        self.rolling_line_2, = self.rolling_ax.plot([], [],  marker='.', linestyle='-', label='interpolated_errors_S5_original_to_retimed', color='green')
-        self.rolling_line_3, = self.rolling_ax.plot([], [], marker='None', linestyle='-', label = 'foot_anchor', color= '#980002')  # Add your new plot line here
-        self.rolling_ax.set_xlim(0, 100)  # Adjust limits based on your data
-        self.rolling_ax.set_ylim(0, 100)  # Adjust limits based on your data
+        self.rolling_line, = self.rolling_ax.plot([], [], marker='.', linestyle='-', label='mpjpe_h3.6m_periodic')
+        self.rolling_line_2, = self.rolling_ax.plot([], [],  marker='.', linestyle='-', label='mpjpe_h3.6m_retimed_interpolation_errors_S5', color='green')
+        #self.rolling_line_3, = self.rolling_ax.plot([], [], marker='None', linestyle='-', label = 'foot_anchor', color= '#980002')  # Add your new plot line here
+        self.rolling_ax.set_xlim(0, 50)  # Adjust limits based on your data
+        self.rolling_ax.set_ylim(0, 50)  # Adjust limits based on your data
         self.rolling_ax.set_xticks([i for i in range(0, 101, 10)], [i - 50 for i in range(0, 101, 10)])
-        self.rolling_ax.set_title('Frame 2 predictions', loc='right', fontsize=10)
+        self.rolling_ax.set_title('Frame 5 predictions', loc='right', fontsize=10)
         self.rolling_ax.legend()
 
         self.rolling_file = rolling_file
         self.rolling_file_2 = rolling_file_2
 
-        self.foot_anchor, = self.rolling_ax.plot([], [],  marker='|', linestyle='None', markersize=30, markeredgewidth=2, label='Foot Anchors', color='#980002')  # Initialize foot anchor plot
+        #self.foot_anchor, = self.rolling_ax.plot([], [],  marker='|', linestyle='None', markersize=30, markeredgewidth=2, label='Foot Anchors', color='#980002')  # Initialize foot anchor plot
 
         try:
             # Read the initial rolling graph data from CSV, skipping the first column
@@ -249,7 +254,7 @@ class Animation:
         self.fig.text(0.07, 0.15, 'MPJPE', ha='center', va='center', rotation='vertical')
 
         if self.savefile:
-            self.ani.save(filename=self.savefile, writer="ffmpeg", fps=30)
+            self.ani.save(filename=self.savefile, writer="ffmpeg", fps=10)
 
         plt.show()
 
@@ -295,7 +300,7 @@ if __name__ == '__main__':
     parser.add_argument("--save", type=str, help="save the output of a model")
     parser.add_argument("--file1", type=str, required=True, help="First CSV file")
     parser.add_argument("--file2", type=str, required=True, help="Second CSV file")
-    parser.add_argument("--foot_anchor", type=str, required=True, help="Foot anchor positions")
+    #parser.add_argument("--foot_anchor", type=str, required=True, help="Foot anchor positions")
     parser.add_argument("--label1", type=str, required=True, help="Label for the first animation")
     parser.add_argument("--label2", type=str, required=True, help="Label for the second animation")
     parser.add_argument("--rolling_file", type=str, help="CSV file for rolling graph", required=True)
@@ -333,16 +338,16 @@ if __name__ == '__main__':
                 h36_anno_dict[dataset] = {'period' : period, 'manual' : manual}
                 #print(period)
 
-    if args.foot_anchor == 'periodic':
-        p = h36_anno_dict['walking1_s5']['period']
-        foot_list = [int(p) * i for i in np.arange(0, len(h36_anno_dict['walking1_s5']['manual']))]
-    else:
-        foot_list = h36_anno_dict['walking1_s5']['manual']
+    # if args.foot_anchor == 'periodic':
+    #     p = h36_anno_dict['walking1_s5']['period']
+    #     foot_list = [int(p) * i for i in np.arange(0, len(h36_anno_dict['walking1_s5']['manual']))]
+    # else:
+    #     foot_list = h36_anno_dict['walking1_s5']['manual']
 
 
     if args.keypoint:
         anim = Animation([pred1, pred2], args.rolling_file, args.rolling_file_2, labels=labels, dots=not args.nodots, skellines=args.lineplot,
-                         scale=args.scale, save=args.save, foot_anchor=foot_list)
+                         scale=args.scale, save=args.save)
     else:
         anim = Animation([l1.xyz(), l2.xyz()], args.rolling_file, args.rolling_file_2, labels=labels, dots=not args.nodots,
-                         skellines=args.lineplot, scale=args.scale, save=args.save, foot_anchor=foot_list)
+                         skellines=args.lineplot, scale=args.scale, save=args.save)

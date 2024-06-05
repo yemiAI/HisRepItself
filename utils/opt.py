@@ -42,7 +42,10 @@ class Options:
         # ===============================================================
         # self.parser.add_argument('--input_size', type=int, default=2048, help='the input size of the neural net')
         # self.parser.add_argument('--output_size', type=int, default=85, help='the output size of the neural net')
+
         self.parser.add_argument('--in_features', type=int, default=54, help='size of each model layer')
+
+        #self.parser.add_argument('--in_features', type=int, default=54, help='size of each model layer')
         self.parser.add_argument('--num_stage', type=int, default=12, help='size of each model layer')
         self.parser.add_argument('--d_model', type=int, default=256, help='past frame number')
         self.parser.add_argument('--kernel_size', type=int, default=5, help='past frame number')
@@ -62,6 +65,14 @@ class Options:
         self.parser.add_argument('--test_batch_size', type=int, default=16)
         self.parser.add_argument('--is_load', dest='is_load', action='store_true',
                                  help='whether to load existing model')
+
+        # ===============================================================
+        #                     Augumentation
+        # ===============================================================
+        self.parser.add_argument('--flip_x', action= 'store_true', help='Flip X augmentation')
+        self.parser.add_argument('--flip_z', action= 'store_true', help='Flip Y  augmentation')
+
+
 
     def _print(self):
         print("\n==================Options=================")

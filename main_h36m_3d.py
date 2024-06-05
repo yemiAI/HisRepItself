@@ -442,6 +442,20 @@ def run_model_fold(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1
     idx = np.expand_dims(np.arange(seq_in + out_n), axis=1) + (
             out_n - seq_in + np.expand_dims(np.arange(itera), axis=0))
     st = time.time()
+    ###apply data augumentation here
+
+
+
+
+
+
+
+
+
+
+    #########################
+
+
     for i, (p3d_h36, ano) in enumerate(data_loader):
         batch_size, seq_n, _ = p3d_h36.shape
         # when only one sample in this batch
@@ -466,24 +480,11 @@ def run_model_fold(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1
 
             p3d_src_slice_his[i, :, :] = p3d_src[i, -in_n-out_n-p-offset:-p-offset, :]
 
-            #print(p3d_src_slice_his.shape)
-            #exit(0)
         p3d_src_slice_updated = p3d_src[:, -in_n-out_n:, :]
 
-        #p3d_src_slice_updated = torch.from_numpy(p3d_src_slice_updated)
-        #print(p3d_src_slice_updated.shape)
-        #exit(0)
-
-
-        # print(p3d_src_slice_updated.shape)
-        # exit(0)
-        # #slice2
-        # p3d_src_copy = p3d_src
         # #fold model
         p3d_src_fold = torch.cat((p3d_src_slice_updated, p3d_src_slice_his), dim = 2)
 
-        #print(p3d_src_fold.shape)
-        #exit(0)
         p3d_out_all = net_pred(p3d_src_fold, input_n=in_n, output_n=out_n, itera=itera)
         #print("p3d_out_all model out", p3d_out_all.shape)
         p3d_out = p3d_h36.clone()[:, in_n:in_n + out_n]
