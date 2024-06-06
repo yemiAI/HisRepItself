@@ -131,37 +131,44 @@ class Animation:
     def update_rolling_graph(self, frame):
         try:
             # Extract the relevant rows for the current frame
-            if frame < 50:
-                row_data_5 = np.zeros([100])
-                row_data_5_2 = np.zeros([100])
+            #if frame < 50:
+                #row_data_5 = np.zeros([100])
+                #row_data_5_2 = np.zeros([100])
 
                 #foot = np.zeros([100])
 
-                width1 = self.rolling_data.iloc[0:frame + 50, 1].shape[0]
+                #width1 = self.rolling_data.iloc[0:frame + 50, 1].shape[0]
 
-                endval = min(50 - frame + width1, 100)
-                row_data_5[50 - frame:endval] = self.rolling_data.iloc[0:frame + 50, 1]
-                row_data_5_2[50 - frame:endval] = self.rolling_data_2.iloc[0:frame + 50, 1]
+                #endval = min(50 - frame + width1, 100)
+
+                #row_data_5[50 - frame:endval] = self.rolling_data.iloc[0:frame + 50, 1]
+                #row_data_5_2[50 - frame:endval] = self.rolling_data_2.iloc[0:frame + 50, 1]
                 #foot[50 - frame:100] = self.foot_anchor.iloc[0:frame + 50, 5]
-            else:
-                row_data_5 = self.rolling_data.iloc[frame - 50:frame + 50, 1]
-                row_data_5_2 = self.rolling_data_2.iloc[frame - 50:frame + 50, 1]
-                #foot = self.foot.iloc[frame - 50:frame + 50, 5]
+            #else:
+                #row_data_5 = self.rolling_data.iloc[frame - 50:frame + 50, 1]
+                #row_data_5_2 = self.rolling_data_2.iloc[frame - 50:frame + 50, 1]
+                #foot = self.foot_anchor.iloc[frame - 50:frame + 50, 5]
 
             # Update combined rolling graph
-            self.rolling_line.set_data(range(1, len(row_data_5) + 1), row_data_5)
-            self.rolling_line_2.set_data(range(1, len(row_data_5_2) + 1), row_data_5_2)
+            #self.rolling_line.set_data(range(1, len(row_data_5) + 1), row_data_5)
+            #self.rolling_line_2.set_data(range(1, len(row_data_5_2) + 1), row_data_5_2)
 
             # Update foot anchors
-            #x_list = [i - frame + 50 for i in foot_list if (i > frame - 50 and i < frame + 50)]
+            x_list = [i - frame for i in foot_list_1 if (i > frame - 50 and i < frame + 100)]
+            x_list_1 = [i - frame for i in foot_list_2 if (i > frame - 50 and i < frame + 100)]
+            #print(x_list_1)
+            #exit(0)
             #y_list = [row_data_5[i] for i in x_list]
             #y_list = [row_data_5_2[i - (frame - 50)] for i in foot_list if (i > frame - 50 and i < frame + 50)]
-            #y_list = [0 for i in x_list]
-            #self.foot_anchor.set_data(x_list, y_list)
+            y_list = [0 for i in x_list]
+            y_list_1 = [0 for i in x_list_1]
+            #y_list_2 = [0 for i in x_list_1]
+            self.foot_anchor1.set_data(x_list, y_list)
+            self.foot_anchor2.set_data(x_list_1, y_list_1)
             #exit(0)
             self.rolling_ax.relim()
             self.rolling_ax.autoscale_view()
-            self.rolling_ax.axline([0, 0], [0, 30], color="#f0944d")
+            self.rolling_ax.axline([50, 0], [50, 50], color="#f0944d")
 
         except Exception as e:
             print(f"Error updating rolling graph: {e}")
@@ -219,31 +226,35 @@ class Animation:
             self.ax[idx].set_title(labels[idx])
 
         # Add a single rolling graph with two lines below the animations
-        self.rolling_ax = self.fig.add_axes([0.1, 0.05, 0.8, 0.22])  # [left, bottom, width, height]
-        self.rolling_line, = self.rolling_ax.plot([], [], marker='.', linestyle='-', label='mpjpe_h3.6m_periodic')
-        self.rolling_line_2, = self.rolling_ax.plot([], [],  marker='.', linestyle='-', label='mpjpe_h3.6m_retimed_interpolation_errors_S5', color='green')
-        #self.rolling_line_3, = self.rolling_ax.plot([], [], marker='None', linestyle='-', label = 'foot_anchor', color= '#980002')  # Add your new plot line here
+        self.rolling_ax = self.fig.add_axes([0.1, 0.05, 0.8, 0.1])  # [left, bottom, width, height]
+        #self.rolling_line, = self.rolling_ax.plot([], [], marker='.', linestyle='-', label='mpjpe_h3.6m_periodic')
+        #self.rolling_line_2, = self.rolling_ax.plot([], [],  marker='.', linestyle='-', label='mpjpe_h3.6m_retimed_interpolation_errors_S5', color='green')
+        self.rolling_line_3, = self.rolling_ax.plot([], [], marker='None', linestyle='-', label = 'foot_anchor_original', color= 'purple')
+        self.rolling_line_4, = self.rolling_ax.plot([], [], marker='None', linestyle='-', label = 'foot_anchor_retimed', color= 'green')# Add your new plot line here
         self.rolling_ax.set_xlim(0, 50)  # Adjust limits based on your data
         self.rolling_ax.set_ylim(0, 15)  # Adjust limits based on your data
-        self.rolling_ax.set_xticks([i for i in range(0, 50, 10)], [i - 50 for i in range(0, 50, 10)])
+        self.rolling_ax.set_xticks([i for i in range(0, 101, 10)], [i - 50 for i in range(0, 101, 10)])
         self.rolling_ax.set_title('Frame predictions', loc='right', fontsize=10)
         self.rolling_ax.legend()
 
         self.rolling_file = rolling_file
         self.rolling_file_2 = rolling_file_2
 
-        #self.foot_anchor, = self.rolling_ax.plot([], [],  marker='|', linestyle='None', markersize=30, markeredgewidth=2, label='Foot Anchors', color='#980002')  # Initialize foot anchor plot
-
+        self.foot_anchor1, = self.rolling_ax.plot([], [],  marker='|', linestyle='None', markersize=30, markeredgewidth=2, label='Foot Anchors', color='purple')  # Initialize foot anchor plot
+        self.foot_anchor2, = self.rolling_ax.plot([], [], marker='|', linestyle='None', markersize=30,
+                                                                    markeredgewidth=2, label='Foot Anchors',
+                                                                    color='green')
         try:
             # Read the initial rolling graph data from CSV, skipping the first column
             self.rolling_data = pd.read_csv(self.rolling_file)
             self.rolling_data_2 = pd.read_csv(self.rolling_file_2)
-            if self.rolling_data.shape[
-                1] == 11:  # Expecting 11 columns, with the first being time/frame and the rest being test results
-                self.rolling_line.set_data(range(1, self.rolling_data.shape[1]), self.rolling_data.iloc[0, 1:])
-            else:
-                raise ValueError(
-                    "The rolling file must contain exactly 11 columns, with the first column as time/frame and the next 10 columns as test results.")
+            # if self.rolling_data.shape[
+            #     1] == 11:  # Expecting 11 columns, with the first being time/frame and the rest being test results
+            #
+            #     #self.rolling_line.set_data(range(1, self.rolling_data.shape[1]), self.rolling_data.iloc[0, 1:])
+            # else:
+            #     raise ValueError(
+            #         "The rolling file must contain exactly 11 columns, with the first column as time/frame and the next 10 columns as test results.")
         except ValueError as ve:
             print(f"Error reading CSV file: {ve}")
         except Exception as e:
@@ -255,7 +266,7 @@ class Animation:
 
         # Add shared X and Y labels
         self.fig.text(0.5, 0.02, 'Frame Offsets', ha='center', va='center')
-        self.fig.text(0.07, 0.15, 'MPJPE', ha='center', va='center', rotation='vertical')
+        #self.fig.text(0.07, 0.15, 'MPJPE', ha='center', va='center', rotation='vertical')
 
         if self.savefile:
             self.ani.save(filename=self.savefile, writer="ffmpeg", fps=10)
@@ -307,8 +318,8 @@ if __name__ == '__main__':
     #parser.add_argument("--foot_anchor", type=str, required=True, help="Foot anchor positions")
     parser.add_argument("--label1", type=str, required=True, help="Label for the first animation")
     parser.add_argument("--label2", type=str, required=True, help="Label for the second animation")
-    parser.add_argument("--rolling_file", type=str, help="CSV file for rolling graph", required=True)
-    parser.add_argument("--rolling_file_2", type=str, help="CSV file for rolling graph", required=True)
+    parser.add_argument("--rolling_file", type=str, help="CSV file for rolling graph", required=False)
+    parser.add_argument("--rolling_file_2", type=str, help="CSV file for rolling graph", required=False)
 
     args = parser.parse_args()
 
@@ -342,12 +353,15 @@ if __name__ == '__main__':
                 h36_anno_dict[dataset] = {'period' : period, 'manual' : manual}
                 #print(period)
 
-    # if args.foot_anchor == 'periodic':
-    #     p = h36_anno_dict['walking1_s5']['period']
-    #     foot_list = [int(p) * i for i in np.arange(0, len(h36_anno_dict['walking1_s5']['manual']))]
-    # else:
-    #     foot_list = h36_anno_dict['walking1_s5']['manual']
-
+    #if args.foot_anchor == 'periodic':
+    p = h36_anno_dict['walkingtogether1_s5']['period']
+    foot_list_1 = [int(p) * i + 50 for i in np.arange(0, len(h36_anno_dict['walkingtogether1_s5']['manual']))]
+    print(foot_list_1)
+   # else:
+    foot_list_2a = h36_anno_dict['walkingtogether1_s5']['manual']
+    print(foot_list_2a)
+    foot_list_2 = [i + 50 for i in foot_list_2a]
+    #exit(0)
 
     if args.keypoint:
         anim = Animation([pred1, pred2], args.rolling_file, args.rolling_file_2, labels=labels, dots=not args.nodots, skellines=args.lineplot,

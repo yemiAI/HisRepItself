@@ -197,29 +197,29 @@ class Datasets(Dataset):
 
     def __getitem__(self, item):
 
-        key, start_frame, period, augmentation = self.data_idx[item]
-
+        # key, start_frame, period, augmentation = self.data_idx[item]
+        key, start_frame, period= self.data_idx[item]
         fs = np.arange(start_frame, start_frame + self.in_n + self.out_n)
 
-        if augmentation == 'flip_x':
+        # if augmentation == 'flip_x':
+        #
+        #     animation = self.p3d[key][fs]
+        #     animation = animation.reshape([-1, 32, 3])
+        #     x_component = animation[0] * -1
+        #     print(x_component)
+        #
+        #     #exit(0)
+        #     pass
+        # elif augmentation == 'flip_z':
+        #
+        #     #flip_z = flipz(animation)
+        #     animation = self.p3d[key][fs]
+        #     animation = animation.reshape([-1, 32, 3])
+        #     z_component = animation[2] * -1
+        #     print(z_component)
 
-            animation = self.p3d[key][fs]
-            animation = animation.reshape([-1, 32, 3])
-            x_component = animation[0] * -1
-            print(x_component)
-
-            #exit(0)
-            pass
-        elif augmentation == 'flip_z':
-
-            #flip_z = flipz(animation)
-            animation = self.p3d[key][fs]
-            animation = animation.reshape([-1, 32, 3])
-            z_component = animation[2] * -1
-            print(z_component)
-
-        else:
-            pass
-        # no flip
+        # else:
+        #     pass
+        # # no flip
 
         return self.p3d[key][fs], period
