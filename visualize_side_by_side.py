@@ -74,14 +74,14 @@ class AnimationData:
 
 
 class Animation:
-    def drawlines(self, aidx, frame):
+    def drawlines(self, aidx, frame, color= '#015482'):
         #print("Drawn stickman with colour %s"%color)
         linex, liney, linez = self.animdata[aidx].build_lines(frame)
         #linex, liney, linez = self.animdata[0].build_lines(frame)
         for idx in range(len(linex)):
             # Plot the main line with default color and no blur
-            self.animlines[aidx].append(self.ax[aidx].plot(linex[idx], liney[idx], linez[idx]))
-            # self.animlines[0].append(self.ax[0].plot(linex[idx], liney[idx], linez[idx], color=color, alpha=1.0))
+            self.animlines[aidx].append(self.ax[aidx].plot(linex[idx], liney[idx], linez[idx], color=color))
+            #self.animlines[0].append(self.ax[0].plot(linex[idx], liney[idx], linez[idx], color=color))
 
             #Create a blur effect by plotting multiple lines with decreasing alpha and slight offsets
             # for offset in np.linspace(-0.05, 0.05, 10):
@@ -202,31 +202,32 @@ class Animation:
             idata = adata.df[adata.df['time'] == 0]
             if (self.skellines):
                 print("Drawing stickman %d"%idx)
-                self.drawlines(idx, 0)
-                #self.drawlines(idx, 0, color = stickmancolours[idx])
+                #self.drawlines(idx, 0)
+                self.drawlines(idx, 0, color = stickmancolours[idx])
             if (self.dots):
                 self.animdots.append(self.ax[idx].scatter(idata.x, idata.y, idata.z))
             self.ax[idx].set_xlim(-self.scale, self.scale)
             self.ax[idx].set_ylim(-self.scale, self.scale)
             self.ax[idx].set_zlim(-self.scale, self.scale)
-            self.ax[idx].grid(visible=True)
+            self.ax[idx].grid(visible=False)
 
             self.ax[idx].set_xticks([i for i in range(-1000, 1000, 250)], ["" for i in range(-1000, 1000, 250)])
             self.ax[idx].set_yticks([i for i in range(-1000, 1000, 250)], ["" for i in range(-1000, 1000, 250)])
             self.ax[idx].set_zticks([i for i in range(-1000, 1000, 250)], ["" for i in range(-1000, 1000, 250)])
 
-            self.ax[idx].view_init(elev=147, azim=-90, roll=0)
+            self.ax[idx].view_init(elev=0, azim=-45, roll=0, vertical_axis='y')
+            # self.ax[idx].view_init(elev=147, azim=-90, roll=0)
             self.ax[idx].set_title(labels[idx])
 
         # Add a single rolling graph with two lines below the animations
         self.rolling_ax = self.fig.add_axes([0.1, 0.05, 0.8, 0.22])  # [left, bottom, width, height]
-        self.rolling_line, = self.rolling_ax.plot([], [], marker='.', linestyle='-', label='mpjpe_h3.6m_periodic')
-        self.rolling_line_2, = self.rolling_ax.plot([], [],  marker='.', linestyle='-', label='mpjpe_h3.6m_retimed_interpolation_errors_S5', color='green')
+        self.rolling_line, = self.rolling_ax.plot([], [], marker='.', linestyle='-', label='MPJPE_FixedDCT') #, label='MPJPE_H3.6m_FixedDCT'
+        self.rolling_line_2, = self.rolling_ax.plot([], [],  marker='.', linestyle='-',  color='green', label='MPJPE_OurRetimedAdaptiveDCT') #label='MPJPE_H3.6m_RetimedAdaptiveDCT',
         #self.rolling_line_3, = self.rolling_ax.plot([], [], marker='None', linestyle='-', label = 'foot_anchor', color= '#980002')  # Add your new plot line here
-        self.rolling_ax.set_xlim(0, 50)  # Adjust limits based on your data
+        self.rolling_ax.set_xlim(0, 80)  # Adjust limits based on your data
         self.rolling_ax.set_ylim(0, 15)  # Adjust limits based on your data
-        self.rolling_ax.set_xticks([i for i in range(0, 50, 10)], [i - 50 for i in range(0, 50, 10)])
-        self.rolling_ax.set_title('Frame predictions', loc='right', fontsize=10)
+        self.rolling_ax.set_xticks([i for i in range(0, 90, 16)], [i - 80 for i in range(0, 90, 16)])
+        #self.rolling_ax.set_title('Frame predictions', loc='right', fontsize=10)
         self.rolling_ax.legend()
 
         self.rolling_file = rolling_file
@@ -255,7 +256,7 @@ class Animation:
 
         # Add shared X and Y labels
         self.fig.text(0.5, 0.02, 'Frame Offsets', ha='center', va='center')
-        self.fig.text(0.07, 0.15, 'MPJPE', ha='center', va='center', rotation='vertical')
+        self.fig.text(0.07, 0.15, 'MPJPE', ha='left', va='center', rotation='vertical')
 
         if self.savefile:
             self.ani.save(filename=self.savefile, writer="ffmpeg", fps=10)

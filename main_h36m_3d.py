@@ -55,7 +55,7 @@ def main(opt):
         net_pred.load_state_dict(ckpt['state_dict'])
         # net.load_state_dict(ckpt)
         # optimizer.load_state_dict(ckpt['optimizer'])
-        # lr_now = util.lr_decay_mine(optimizer, lr_now, 0.2)
+        #lr_now = util.lr_decay_mine(optimizer, lr_now, 0.2)
         print(">>> ckpt len loaded (epoch: {} | err: {})".format(ckpt['epoch'], ckpt['err']))
 
     print('>>> loading datasets')
@@ -98,6 +98,11 @@ def main(opt):
         single = single_run_model(net_pred, opt)
         return single
 
+    if opt.is_visualize_fold:
+
+        single_fold = single_run_model_fold(net_pred, opt)
+        return single_fold
+
     if opt.is_mpjpe:
         mpjpe = mpjpe_dump(opt)
         return
@@ -107,13 +112,13 @@ def main(opt):
         for epo in range(start_epoch, opt.epoch + 1):
             is_best = False
             # if epo % opt.lr_decay == 0:
-            lr_now = util.lr_decay_mine(optimizer, lr_now, 0.1 ** (1 / opt.epoch))
+            lr_now = util.lr_decay_mine(optimizer, lr_now, 0.2 ** (1 / opt.epoch))
             print('>>> training epoch: {:d}'.format(epo))
-            ret_train = run_model_fold(net_pred, optimizer, is_train=0, data_loader=data_loader, epo=epo, opt=opt)
+            ret_train = run_model_fold(net_pred, optimizer, is_train=0, data_loader=data_loader, epo=epo, opt=opt, offset= 5)
             print('train error: {:.3f}'.format(ret_train['m_p3d_h36']))
-            ret_valid = run_model_fold(net_pred, is_train=1, data_loader=valid_loader, opt=opt, epo=epo)
+            ret_valid = run_model_fold(net_pred, is_train=1, data_loader=valid_loader, opt=opt, epo=epo, offset= 5)
             print('validation error: {:.3f}'.format(ret_valid['m_p3d_h36']))
-            ret_test = run_model_fold(net_pred, is_train=3, data_loader=test_loader, opt=opt, epo=epo)
+            ret_test = run_model_fold(net_pred, is_train=3, data_loader=test_loader, opt=opt, epo=epo, offset= 5)
             print('testing error: {:.3f}'.format(ret_test['#1']))
             ret_log = np.array([epo, lr_now])
             head = np.array(['epoch', 'lr'])
@@ -142,7 +147,7 @@ def main(opt):
         for epo in range(start_epoch, opt.epoch + 1):
             is_best = False
             # if epo % opt.lr_decay == 0:
-            lr_now = util.lr_decay_mine(optimizer, lr_now, 0.1 ** (1 / opt.epoch))
+            lr_now = util.lr_decay_mine(optimizer, lr_now, 0.2 ** (1 / opt.epoch))
             print('>>> training epoch: {:d}'.format(epo))
             ret_train = run_model(net_pred, optimizer, is_train=0, data_loader=data_loader, epo=epo, opt=opt)
             print('train error: {:.3f}'.format(ret_train['m_p3d_h36']))
@@ -188,6 +193,7 @@ def single_run_model(net_pred, opt=None):
     single_file = loader.rawvals
     batch_size = 1
     in_n = opt.input_n
+
     out_n = opt.output_n
     seq_in = opt.kernel_size
     start_f = opt.start_frame
@@ -206,9 +212,17 @@ def single_run_model(net_pred, opt=None):
     #print(p3d_single_np.shape) ###(1637, 32, 3)
     p3d_reshaped = np.reshape(p3d_single_np, [p3d_single_np.shape[0], -1])
     #print(p3d_reshaped.shape)
+    #print(start_f)
+    #print(in_n)
+    #print(out_n)
+    print(start_f, in_n, out_n)
     fs = np.arange(start_f, start_f + in_n + out_n)
+
+
+
+
     p3d_reshaped = p3d_reshaped[fs] #(60, 96)
-    np.savetxt("singlefile_gt_s5_walking_1_original.txt", p3d_reshaped, delimiter=',')
+    np.savetxt("singlefile_gt_s5_walking_1_retimed_fold.txt", p3d_reshaped, delimiter=',')
     print('in and out frame saved')
     #exit(0)
     # print(p3d_reshaped.shape)
@@ -274,6 +288,178 @@ def single_run_model(net_pred, opt=None):
     #print(m_p3d_h36_single_reshaped)
     #exit(0)
     return m_p3d_h36_single_reshaped
+import os
+import re
+import math
+
+def single_run_model_fold(net_pred, opt=None, offset= 5):
+
+    net_pred.eval()
+    #exit(0)
+
+    dim_used = np.array([6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 21, 22, 23, 24, 25,
+                         26, 27, 28, 29, 30, 31, 32, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45,
+                         46, 47, 51, 52, 53, 54, 55, 56, 57, 58, 59, 63, 64, 65, 66, 67, 68,
+                         75, 76, 77, 78, 79, 80, 81, 82, 83, 87, 88, 89, 90, 91, 92])
+    #finlename should be a command line optoion
+    #start frame too to not take in the whole file
+    loader = Loader(opt.filename)
+    single_file = loader.rawvals
+    batch_size = 1
+    in_n = opt.input_n
+    in_n_run = opt.input_n_run
+    out_n = opt.output_n
+    seq_in = opt.kernel_size
+    start_f = opt.start_frame
+    sample_rate = 1
+    itera = 1
+    #print(fs.shape)
+    n, d = single_file.shape
+    even_list = range(0, n, sample_rate)
+    num_frames = len(even_list)
+    the_sequence = np.array(single_file[even_list, :])
+    the_sequence = torch.from_numpy(the_sequence).float().cuda()
+    # remove global rotation and translation
+    the_sequence[:, 0:6] = 0
+    p3d_single = data_utils.expmap2xyz_torch(the_sequence)
+    p3d_single_np = p3d_single.cpu().numpy()
+
+    #print(p3d_single_np.shape) ###(1637, 32, 3)
+    p3d_reshaped = np.reshape(p3d_single_np, [p3d_single_np.shape[0], -1])
+    #print(p3d_reshaped.shape)
+    #print(start_f)
+    #print(in_n)
+    #print(out_n)
+    print(start_f, in_n_run, out_n)
+    fs = np.arange(start_f, start_f + in_n_run + out_n)
+
+    p3d_reshaped = p3d_reshaped[fs] #(60, 96)
+
+    np.savetxt("singlefile_gt_s5_walking_1_retimed_fold.txt", p3d_reshaped[-in_n-out_n:,:], delimiter=',')
+    print(p3d_reshaped[-in_n-out_n:,:].shape)
+    print('in and out frame saved')
+    #exit(0)
+    # print(p3d_reshaped.shape)
+    # #exit(0)
+    single = np.expand_dims(p3d_reshaped, axis= 0)
+    shape_single_torch = torch.from_numpy(single)
+    shape_single = shape_single_torch.float().cuda()  ###1,60,96
+    #print(len(shape_single))
+    #exit(0)
+    p3d_sup_single = shape_single.clone()[:, :, dim_used][:, -out_n - seq_in:].reshape(
+        [-1, seq_in + out_n, len(dim_used) // 3, 3])
+
+    p3d_src_single = shape_single.clone()[:, :, dim_used]
+
+    p3d_src_single_slice_his = torch.zeros([p3d_src_single.shape[0], in_n + out_n, p3d_src_single.shape[2]]).cuda()
+
+
+    h36_anno_dict = {}
+    with open('human3.6_retimed_interpolation_annotation.csv') as h36_anno:
+        reader = csv.DictReader(h36_anno)
+        for row in reader:
+            # annotations = row['dataset'][:-4], row['period']
+            dataset = row['dataset'][:-4]
+            period = float(row['period'])
+            h36_anno_dict[dataset] = period
+
+    ##-------------------##
+    path_dir, file_name = os.path.split(opt.filename)
+
+    dir_pattern = ".+S([0-9]+)"
+    file_pattern = "(.+)_([12]).txt"
+
+    m = re.match(dir_pattern, path_dir)
+
+    if (m):
+        subject = m.groups()[0]
+    else:
+        print("Can't parse %s for subject" % path_dir)
+
+    m = re.match(file_pattern, file_name)
+    if (m):
+        action, subaction = m.groups()
+    else:
+        print("Can't parse %s for action and subaction"%file_name)
+    modified_key = '{0}{1}_s{2}'.format(action, subaction, subject)
+
+    print([k for k in h36_anno_dict.keys()])
+###-------------------------###
+
+
+    period = int(h36_anno_dict[modified_key])
+    #print(period)
+    #exit(0)
+    print(batch_size)
+    #exit(0)
+
+    p3d_src_single_slice_his[0, :, :] = p3d_src_single[0, -in_n - out_n - period - offset:-period - offset, :]
+
+    p3d_src_slice_updated = p3d_src_single[:, -in_n - out_n:, :]
+
+    # #fold model
+    p3d_src_fold = torch.cat((p3d_src_slice_updated, p3d_src_single_slice_his), dim=2)
+
+
+
+    #print("single", p3d_src_single.shape)
+    #p3d_src_single_squeeze = p3d_src_single.squeeze()
+    #gt_pred = p3d_src_single_squeeze.cpu().detach().numpy()
+    #print(p3d_src_single.shape)
+    #exit(0)
+    p3d_out_all = net_pred(p3d_src_fold, input_n=in_n, output_n=out_n, itera=itera)
+    #print(p3d_out_all.shape)
+    #exit(0)
+    joint_to_ignore = np.array([16, 20, 23, 24, 28, 31])
+    index_to_ignore = np.concatenate((joint_to_ignore * 3, joint_to_ignore * 3 + 1, joint_to_ignore * 3 + 2))
+    joint_equal = np.array([13, 19, 22, 13, 27, 30])
+    index_to_equal = np.concatenate((joint_equal * 3, joint_equal * 3 + 1, joint_equal * 3 + 2))
+
+    # print(index_to_equal.shape)
+    # exit(0)
+
+    p3d_out_model = shape_single.clone()[:, in_n:in_n + out_n]
+    print(p3d_out_model.shape)
+
+    p3d_out_model[:, :, dim_used] = p3d_out_all[:, seq_in:, 0, :66]
+    # print(p3d_out.shape)
+    # print(in_n)
+    p3d_out_model[:, :, index_to_ignore] = p3d_out_model[:, :, index_to_equal]
+
+    p3d_out_model = p3d_out_model.reshape([-1, out_n, 32, 3])  ####torch.Size([32, 10, 32, 3])
+    #p3d_h36_slice = shape_single[:, -in_n - out_n:, :].reshape([-1, in_n + out_n, 32, 3])
+
+    p3d_out_all = p3d_out_all[:, :, :, :66].reshape([batch_size, seq_in + out_n, itera, len(dim_used) // 3, 3])
+    print("p3d out MOdel is", p3d_out_model.shape)
+    #print("p3d out slice", p3d_h36_slice.shape)
+    print("p3d out all is", p3d_out_all.shape)
+
+    p3d_out_model_reshape = p3d_out_model.reshape(-1,96)
+
+    #exit(0)
+    #
+    single_data_prediction_fold = p3d_out_model_reshape.cpu().detach().numpy()
+    print(single_data_prediction_fold.shape)
+    #exit(0)
+    np.savetxt("singlefile_pred_s5_walking_1_retimed_fold.txt", single_data_prediction_fold, delimiter=',')
+    print('prediction saved')
+
+
+    # mpjpe_p3d_h36_single = torch.sum(torch.mean(torch.norm(shape_single[:, in_n:] - p3d_out_model_reshape, dim=3), dim=2), dim=0)
+    # m_p3d_h36_single = mpjpe_p3d_h36_single.cpu().data.numpy()
+    # m_p3d_h36_single_reshaped = np.reshape(m_p3d_h36_single, (1, -1))
+    #np.savetxt("mpjpe_singlefile0.txt", m_p3d_h36_single_reshaped, delimiter=',')
+    #print("MPJPE saved")
+    #print(m_p3d_h36_single.shape)
+
+    #
+    # ret_single = {}
+    # ret_single["m_p3d_h36"] = m_p3d_h36_single_reshaped / n
+    #
+    #print(m_p3d_h36_single_reshaped)
+    #exit(0)
+    return single_data_prediction_fold
+
 
 
 def mpjpe_dump(opt= None):
@@ -313,6 +499,7 @@ def mpjpe_dump(opt= None):
         print("MPJPE results saved to mpjpe_singlefile0.txt")
 
 def run_model(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1, opt=None):
+
     if is_train == 0:
         net_pred.train()
     else:
@@ -343,7 +530,14 @@ def run_model(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1, opt
     idx = np.expand_dims(np.arange(seq_in + out_n), axis=1) + (
             out_n - seq_in + np.expand_dims(np.arange(itera), axis=0))
     st = time.time()
-    for i, (p3d_h36, ano) in enumerate(data_loader):
+    for i, (p3d_h36, ano, aug) in enumerate(data_loader):
+
+
+        # if ('flip_x' in aug):
+        #     print("Saving flipped data and aborting")
+        #     idx = aug.index('flip_x')
+        #     np.savetxt("try_fold.txt", p3d_h36[idx], delimiter=',')
+        #     exit(0)
         #print(ano)
         #exit(0)
         batch_size, seq_n, _ = p3d_h36.shape
@@ -442,21 +636,16 @@ def run_model_fold(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1
     idx = np.expand_dims(np.arange(seq_in + out_n), axis=1) + (
             out_n - seq_in + np.expand_dims(np.arange(itera), axis=0))
     st = time.time()
-    ###apply data augumentation here
+
+    for i, (p3d_h36, ano, aug) in enumerate(data_loader):
+
+        ###when it comes out of dataloader but before folding
+        #print("folded poses is ",p3d_h36.shape)
+        #exit(0)
 
 
 
 
-
-
-
-
-
-
-    #########################
-
-
-    for i, (p3d_h36, ano) in enumerate(data_loader):
         batch_size, seq_n, _ = p3d_h36.shape
         # when only one sample in this batch
         if batch_size == 1 and is_train == 0:
@@ -471,19 +660,29 @@ def run_model_fold(net_pred, optimizer=None, is_train=0, data_loader=None, epo=1
         # slice1
         p3d_src = p3d_h36.clone()[:, :, dim_used]
 
-        #ano = ano.cpu().detach().numpy()
+        #ano = ano.cpu().detach).numpy()
         #print(ano)
         #exit(0)
 
         p3d_src_slice_his = torch.zeros([p3d_src.shape[0], in_n + out_n, p3d_src.shape[2]]).cuda()
-        for i, p in enumerate(ano):
 
+        #print(p3d_src.shape)
+        #print(p3d_src_slice_his.shape)
+        #exit(0)
+
+
+        for i, p in enumerate(ano):
+            #print(in_n, out_n, p, offset)
             p3d_src_slice_his[i, :, :] = p3d_src[i, -in_n-out_n-p-offset:-p-offset, :]
 
         p3d_src_slice_updated = p3d_src[:, -in_n-out_n:, :]
 
         # #fold model
         p3d_src_fold = torch.cat((p3d_src_slice_updated, p3d_src_slice_his), dim = 2)
+
+
+
+
 
         p3d_out_all = net_pred(p3d_src_fold, input_n=in_n, output_n=out_n, itera=itera)
         #print("p3d_out_all model out", p3d_out_all.shape)

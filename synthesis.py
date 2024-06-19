@@ -15,7 +15,6 @@ class Loader:
             print(self.rawvals.shape)
             self.nvals = self.rawvals.reshape([self.rawvals.shape[0], -1, 3])
 
-            
 
     # def xyz(self):
     #     rm = expmap2rotmat_torch(torch.tensor(self.nvals.reshape(-1, 3))).float().reshape(self.nvals.shape[0], 32, 3, 3)

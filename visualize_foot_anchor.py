@@ -74,13 +74,13 @@ class AnimationData:
 
 
 class Animation:
-    def drawlines(self, aidx, frame):
+    def drawlines(self, aidx, frame, color='#015482'):
         #print("Drawn stickman with colour %s"%color)
         linex, liney, linez = self.animdata[aidx].build_lines(frame)
         #linex, liney, linez = self.animdata[0].build_lines(frame)
         for idx in range(len(linex)):
             # Plot the main line with default color and no blur
-            self.animlines[aidx].append(self.ax[aidx].plot(linex[idx], liney[idx], linez[idx]))
+            self.animlines[aidx].append(self.ax[aidx].plot(linex[idx], liney[idx], linez[idx], color = color))
             # self.animlines[0].append(self.ax[0].plot(linex[idx], liney[idx], linez[idx], color=color, alpha=1.0))
 
             #Create a blur effect by plotting multiple lines with decreasing alpha and slight offsets
@@ -209,8 +209,8 @@ class Animation:
             idata = adata.df[adata.df['time'] == 0]
             if (self.skellines):
                 print("Drawing stickman %d"%idx)
-                self.drawlines(idx, 0)
-                #self.drawlines(idx, 0, color = stickmancolours[idx])
+                #self.drawlines(idx, 0)
+                self.drawlines(idx, 0, color = stickmancolours[idx])
             if (self.dots):
                 self.animdots.append(self.ax[idx].scatter(idata.x, idata.y, idata.z))
             self.ax[idx].set_xlim(-self.scale, self.scale)
@@ -229,21 +229,21 @@ class Animation:
         self.rolling_ax = self.fig.add_axes([0.1, 0.05, 0.8, 0.1])  # [left, bottom, width, height]
         #self.rolling_line, = self.rolling_ax.plot([], [], marker='.', linestyle='-', label='mpjpe_h3.6m_periodic')
         #self.rolling_line_2, = self.rolling_ax.plot([], [],  marker='.', linestyle='-', label='mpjpe_h3.6m_retimed_interpolation_errors_S5', color='green')
-        self.rolling_line_3, = self.rolling_ax.plot([], [], marker='None', linestyle='-', label = 'foot_anchor_original', color= 'purple')
-        self.rolling_line_4, = self.rolling_ax.plot([], [], marker='None', linestyle='-', label = 'foot_anchor_retimed', color= 'green')# Add your new plot line here
+        self.rolling_line_3, = self.rolling_ax.plot([], [], marker='None', linestyle='-', label = 'foot_anchor_fixedDCT', color = '#015482')
+        self.rolling_line_4, = self.rolling_ax.plot([], [], marker='None', linestyle='-', label = 'foot_anchor_OurRetimedAdaptiveDCT', color= 'green')# Add your new plot line here
         self.rolling_ax.set_xlim(0, 50)  # Adjust limits based on your data
         self.rolling_ax.set_ylim(0, 15)  # Adjust limits based on your data
         self.rolling_ax.set_xticks([i for i in range(0, 101, 10)], [i - 50 for i in range(0, 101, 10)])
-        self.rolling_ax.set_title('Frame predictions', loc='right', fontsize=10)
+        #self.rolling_ax.set_title('Frame predictions', loc='right', fontsize=10)
         self.rolling_ax.legend()
 
         self.rolling_file = rolling_file
         self.rolling_file_2 = rolling_file_2
 
-        self.foot_anchor1, = self.rolling_ax.plot([], [],  marker='|', linestyle='None', markersize=30, markeredgewidth=2, label='Foot Anchors', color='purple')  # Initialize foot anchor plot
+        self.foot_anchor1, = self.rolling_ax.plot([], [],  marker='|', linestyle='None', markersize=30, markeredgewidth=2, label='Foot Anchors', color='green')  # Initialize foot anchor plot
         self.foot_anchor2, = self.rolling_ax.plot([], [], marker='|', linestyle='None', markersize=30,
                                                                     markeredgewidth=2, label='Foot Anchors',
-                                                                    color='green')
+                                                                    color='#015482')
         try:
             # Read the initial rolling graph data from CSV, skipping the first column
             self.rolling_data = pd.read_csv(self.rolling_file)
@@ -269,7 +269,7 @@ class Animation:
         #self.fig.text(0.07, 0.15, 'MPJPE', ha='center', va='center', rotation='vertical')
 
         if self.savefile:
-            self.ani.save(filename=self.savefile, writer="ffmpeg", fps=10)
+            self.ani.save(filename=self.savefile, writer="ffmpeg", fps=30)
 
         plt.show()
 
