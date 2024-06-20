@@ -114,11 +114,11 @@ def main(opt):
             # if epo % opt.lr_decay == 0:
             lr_now = util.lr_decay_mine(optimizer, lr_now, 0.2 ** (1 / opt.epoch))
             print('>>> training epoch: {:d}'.format(epo))
-            ret_train = run_model_fold(net_pred, optimizer, is_train=0, data_loader=data_loader, epo=epo, opt=opt, offset= 5)
+            ret_train = run_model_fold(net_pred, optimizer, is_train=0, data_loader=data_loader, epo=epo, opt=opt, offset= 10)
             print('train error: {:.3f}'.format(ret_train['m_p3d_h36']))
-            ret_valid = run_model_fold(net_pred, is_train=1, data_loader=valid_loader, opt=opt, epo=epo, offset= 5)
+            ret_valid = run_model_fold(net_pred, is_train=1, data_loader=valid_loader, opt=opt, epo=epo, offset= 10)
             print('validation error: {:.3f}'.format(ret_valid['m_p3d_h36']))
-            ret_test = run_model_fold(net_pred, is_train=3, data_loader=test_loader, opt=opt, epo=epo, offset= 5)
+            ret_test = run_model_fold(net_pred, is_train=3, data_loader=test_loader, opt=opt, epo=epo, offset= 10)
             print('testing error: {:.3f}'.format(ret_test['#1']))
             ret_log = np.array([epo, lr_now])
             head = np.array(['epoch', 'lr'])
@@ -292,7 +292,7 @@ import os
 import re
 import math
 
-def single_run_model_fold(net_pred, opt=None, offset= 5):
+def single_run_model_fold(net_pred, opt=None, offset= 10):
 
     net_pred.eval()
     #exit(0)

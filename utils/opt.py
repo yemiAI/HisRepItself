@@ -51,7 +51,7 @@ class Options:
         self.parser.add_argument('--num_stage', type=int, default=12, help='size of each model layer')
         self.parser.add_argument('--d_model', type=int, default=256, help='past frame number')
         self.parser.add_argument('--kernel_size', type=int, default=5, help='past frame number')
-        #self.parser.add_argument('--drop_out', type=float, default=0.5, help='drop out probability')
+        self.parser.add_argument('--drop_out', type=float, default=0.5, help='drop out probability')
 
         # ===============================================================
         #                     Running options
@@ -62,6 +62,7 @@ class Options:
         self.parser.add_argument('--dct_n', type=int, default=10, help='future frame number')
         self.parser.add_argument('--lr_now', type=float, default=0.0005)
         self.parser.add_argument('--noisy', type=float, default=0)
+        self.parser.add_argument('--weight_decay', type=float, default=0)
         self.parser.add_argument('--max_norm', type=float, default=10000)
         self.parser.add_argument('--epoch', type=int, default=50)
         self.parser.add_argument('--batch_size', type=int, default=32)
@@ -69,11 +70,13 @@ class Options:
         self.parser.add_argument('--is_load', dest='is_load', action='store_true',
                                  help='whether to load existing model')
 
+
         # ===============================================================
         #                     Augumentation
         # ===============================================================
         self.parser.add_argument('--flip_x', action= 'store_true', help='Flip X augmentation')
-        self.parser.add_argument('--flip_z', action= 'store_true', help='Flip Y  augmentation')
+        self.parser.add_argument('--flip_z', action= 'store_true', help='Flip Z  augmentation')
+        self.parser.add_argument('--flip_xz', action='store_true', help='Flip XZ  augmentation')
 
 
 

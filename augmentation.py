@@ -55,12 +55,22 @@ class Loader:
 
             # Augmentation
             if flip_x:
-                self.nvals[:, :, 0] *= -1
+                self.nvals[:, :, 1:] *= -1
+                # self.nvals[:, :, 0] *= -1
                 self.nvals = bone_swap(self.nvals)
                 print(f"Flipping x coordinates for {filename}")
 
+            # if False: # flip_y
+            #     #self.nvals[:, :, [0, 2]] *= -1
+            #     self.nvals[:, :, 0] *= -1
+            #     self.nvals[:, :, 2] *= -1
+            #     self.nvals = bone_swap(self.nvals)
+            #     print(f"Flipping x coordinates for {filename}")
+
+
+
             if flip_z:
-                self.nvals[:, :, 2] *= -1
+                self.nvals[:, :, :2] *= -1
                 self.nvals = bone_swap(self.nvals)
                 print(f"Flipping z coordinates for {filename}")
 
@@ -88,7 +98,7 @@ def main():
     args = parser.parse_args()
 
     # Paths and patterns
-    in_base_path = "datasets/h3.6m_retimed_interpolation_nozero_anno_train"
+    in_base_path = "datasets/h3.6m_retimed_interpolation_nozero"
     path_template1 = "S%s"
     path_template2 = "%s_%s.txt"
     file_pattern = re.compile(r"(.+)_(\d+).txt")

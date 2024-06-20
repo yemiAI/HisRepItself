@@ -53,6 +53,7 @@ class Datasets(Dataset):
         self.sample_rate = 2
         self.p3d = {}
         self.anno = h36_anno_dict
+        self.weight_decay = 1e-5
 
         #self.modified_template =
         self.data_idx = []
@@ -244,10 +245,19 @@ class Datasets(Dataset):
         if augmentation == 'flip_x':
 
             #animation = self.p3d[key][fs]
-            animation = self.bone_swap(self.p3d[key][fs].reshape([-1, 32, 3]))
-            animation[0] = animation[0] * -1
+            animation_unflipped = self.p3d[key][fs].copy()
+            # print(animation_unflipped.shape)
+            #exit(0)
+            #np.savetxt("unflip.txt", animation_unflipped, delimiter=',')
 
-            self.p3d[key][fs] = animation.reshape([-1,96])
+            animation = self.bone_swap(self.p3d[key][fs].copy().reshape([-1, 32, 3]))
+            animation[:,:,0] = animation[:,:,0] * -1
+
+            animation = animation.reshape([-1, 96])
+            # np.savetxt("flip_z.txt", animation, delimiter=',')
+
+
+
             #exit(0)
 
         elif augmentation == 'flip_z':
@@ -255,31 +265,29 @@ class Datasets(Dataset):
             #flip_z = flipz(animation)
             #animation = self.p3d[key][fs]
             animation = self.bone_swap(self.p3d[key][fs].reshape([-1, 32, 3]))
-            animation[2] = animation[2] * -1
+            animation[:, :,2] = animation[:, :,2] * -1
 
-            self.p3d[key][fs] = animation.reshape([-1,96])
+            animation = animation.reshape([-1,96])
 
         elif augmentation == 'flip_xz':
 
             #flip_z = flipz(animation)
             #animation = self.p3d[key][fs]
             animation = self.p3d[key][fs].reshape([-1, 32, 3])
-            animation[2] = animation[2] * -1
-            animation[0] = animation[0] * -1
+            animation[:,:, 0] = animation[:, :, 0] * -1
+            animation[:,:, 2] = animation[:, :, 2] * -1
 
-
-
-            self.p3d[key][fs] = animation.reshape([-1,96])
+            animation = animation.reshape([-1,96])
 
 
         # return data + noise
 
         else:
-            pass
+            animation = self.p3d[key][fs]
         # no flip
 
         mean = 0
         std = self.noise
         noise = np.random.normal(mean, std, self.p3d[key][fs].shape)
 
-        return self.p3d[key][fs] + noise, period, augmentation
+        return animation + noise, period, augmentation
