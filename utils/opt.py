@@ -76,6 +76,7 @@ class Options:
         # ===============================================================
         self.parser.add_argument('--flip_x', action= 'store_true', help='Flip X augmentation')
         self.parser.add_argument('--flip_z', action= 'store_true', help='Flip Z  augmentation')
+        self.parser.add_argument('--y_rotation', type=int, default = 0, help='y rotation  augmentation')
         self.parser.add_argument('--flip_xz', action='store_true', help='Flip XZ  augmentation')
 
 

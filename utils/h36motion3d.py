@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 import torch
 import re
 import csv
+import math
 
 ##read cvs file
 
@@ -45,6 +46,11 @@ class Datasets(Dataset):
             self.augmentation.append('flip_x')
         elif opt.flip_z:
             self.augmentation.append('flip_z')
+
+        elif opt.y_rotation > 0:
+            yrotations = ["yrot%d"%i for i in range(0, 360, int(360 / opt.y_rotation))]
+            #self.augmentation.append('y_rotation')
+            self.augmentation.extend(yrotations)
         if opt.flip_z and opt.flip_x:
             self.augmentation.append('flip_xz')
 
@@ -249,12 +255,11 @@ class Datasets(Dataset):
             # print(animation_unflipped.shape)
             #exit(0)
             #np.savetxt("unflip.txt", animation_unflipped, delimiter=',')
-
             animation = self.bone_swap(self.p3d[key][fs].copy().reshape([-1, 32, 3]))
             animation[:,:,0] = animation[:,:,0] * -1
 
             animation = animation.reshape([-1, 96])
-            # np.savetxt("flip_z.txt", animation, delimiter=',')
+            #np.savetxt("flip_z.txt", animation, delimiter=',')
 
 
 
@@ -279,6 +284,23 @@ class Datasets(Dataset):
 
             animation = animation.reshape([-1,96])
 
+        #elif augmentation == 'y_rotation':
+        elif augmentation[:4] == 'yrot':
+
+            degrees = int(augmentation[4:])
+            theta = math.radians(degrees)
+            animation_unflipped = self.p3d[key][fs].copy()
+            #np.savetxt("unflip.txt", animation_unflipped, delimiter=',')
+            animation = self.p3d[key][fs].reshape([-1, 32, 3])
+
+
+            animation[:,:,0] = animation[:,:,0] * math.cos(theta) - animation[:,:,2] * math.sin(theta)
+            animation[:,:,2] = animation[:,:,2] * math.cos(theta) + animation[:,:,0] * math.sin(theta)
+
+            animation = animation.reshape([-1,96])
+            #np.savetxt("y_rotation.txt", animation, delimiter=',')
+
+            #exit(0)
 
         # return data + noise
 
