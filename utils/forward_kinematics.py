@@ -1,3 +1,4 @@
+
 import numpy as np
 import torch
 from torch.autograd.variable import Variable
@@ -95,7 +96,9 @@ def _some_variables():
          0.000000, 0.000000, 0.000000, 257.077681, 0.000000, 0.000000, 151.031437, 0.000000, 0.000000, 278.892924,
          0.000000, 0.000000, 251.728680, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 99.999888,
          0.000000, 137.499922, 0.000000, 0.000000, 0.000000, 0.000000])
-    offset = offset.reshape(-1, 3)
+    offset = offset.reshape(-1, 3) ###(32, 3)
+    #print(offset.shape)
+    #exit(0)
 
     rotInd = [[5, 6, 4],
               [8, 9, 7],
@@ -166,6 +169,7 @@ def _some_variables_cmu():
          -0.588870000000000, 0, 0, 0, 0, 0, -0.597860000000000, 0, 0.597860000000000])
     offset = offset.reshape(-1, 3)
 
+
     rotInd = [[6, 5, 4],
               [9, 8, 7],
               [12, 11, 10],
@@ -229,10 +233,20 @@ def fkl_torch(angles, parent, offset, rotInd, expmapInd):
     :param expmapInd:
     :return: N*joint_n*3
     """
-    n = angles.data.shape[0]
-    j_n = offset.shape[0]
-    p3d = Variable(torch.from_numpy(offset)).float().cuda().unsqueeze(0).repeat(n, 1, 1)
-    angles = angles[:, 3:].contiguous().view(-1, 3)
+
+    offset = torch.tensor(offset)
+    #print('The offset is' , offset)
+
+    #exit(0)
+    n = angles.data.shape[0] ## n is 750
+    j_n = offset.shape[0] ##j_n is 32
+    p3d = Variable(offset).float().cuda().unsqueeze(0).repeat(n, 1, 1)  ### torch.Size([750, 32, 3])
+    angles = angles[:, 3:].contiguous().view(-1, 3) ##torch.Size([24000, 3])
+    #print('n is', n)
+    #print('j_n is', j_n)
+    #print('p3d is', p3d.shape)
+    #print('angles is', angles.shape)
+    #exit(0)
     R = data_utils.expmap2rotmat_torch(angles).view(n, j_n, 3, 3)
     for i in np.arange(1, j_n):
         if parent[i] > 0:

@@ -1,4 +1,5 @@
-from utils import h36motion3d as datasets
+#from utils import h36motion3d as datasets
+from utils import variable_bonelengths as datasets
 from model import AttModel
 from utils.opt import Options
 from utils import util
@@ -68,16 +69,16 @@ def main(opt):
         #            "walkingtogether"]
         dataset = datasets.Datasets(opt, split=0)
         print('>>> Training dataset length: {:d}'.format(dataset.__len__()))
-        data_loader = DataLoader(dataset, batch_size=opt.batch_size, shuffle=True, num_workers=0, pin_memory=True)
+        data_loader = DataLoader(dataset, batch_size=opt.batch_size, shuffle=True, num_workers=0, pin_memory=False)
         valid_dataset = datasets.Datasets(opt, split=1)
         print('>>> Validation dataset length: {:d}'.format(valid_dataset.__len__()))
         valid_loader = DataLoader(valid_dataset, batch_size=opt.test_batch_size, shuffle=True, num_workers=0,
-                                  pin_memory=True)
+                                  pin_memory=False)
 
     test_dataset = datasets.Datasets(opt, split=2)
     print('>>> Testing dataset length: {:d}'.format(test_dataset.__len__()))
     test_loader = DataLoader(test_dataset, batch_size=opt.test_batch_size, shuffle=False, num_workers=0,
-                             pin_memory=True)
+                             pin_memory=False)
 
 
     # evaluation

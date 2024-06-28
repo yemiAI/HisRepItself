@@ -8,6 +8,7 @@ import torch
 import re
 import csv
 import math
+from utils import forward_kinematics
 
 ##read cvs file
 
@@ -40,6 +41,19 @@ class Datasets(Dataset):
         self.path_to_data = "./datasets/%s/"%(opt.dataset)
         self.split = split
         self.noise = opt.noisy
+        self.offset = np.array(
+                [0.000000, 0.000000, 0.000000, -132.948591, 0.000000, 0.000000, 0.000000, -442.894612, 0.000000, 0.000000,
+                 -454.206447, 0.000000, 0.000000, 0.000000, 162.767078, 0.000000, 0.000000, 74.999437, 132.948826, 0.000000,
+                 0.000000, 0.000000, -442.894413, 0.000000, 0.000000, -454.206590, 0.000000, 0.000000, 0.000000, 162.767426,
+                 0.000000, 0.000000, 74.999948, 0.000000, 0.100000, 0.000000, 0.000000, 233.383263, 0.000000, 0.000000,
+                 257.077681, 0.000000, 0.000000, 121.134938, 0.000000, 0.000000, 115.002227, 0.000000, 0.000000, 257.077681,
+                 0.000000, 0.000000, 151.034226, 0.000000, 0.000000, 278.882773, 0.000000, 0.000000, 251.733451, 0.000000,
+                 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 99.999627, 0.000000, 100.000188, 0.000000, 0.000000,
+                 0.000000, 0.000000, 0.000000, 257.077681, 0.000000, 0.000000, 151.031437, 0.000000, 0.000000, 278.892924,
+                 0.000000, 0.000000, 251.728680, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 99.999888,
+                 0.000000, 137.499922, 0.000000, 0.000000, 0.000000, 0.000000])
+        self.offset = self.offset.reshape(-1, 3)
+
 
         self.augmentation = ['none']
         if opt.flip_x:
@@ -51,6 +65,20 @@ class Datasets(Dataset):
             yrotations = ["yrot%d"%i for i in range(0, 360, int(360 / opt.y_rotation))]
             #self.augmentation.append('y_rotation')
             self.augmentation.extend(yrotations)
+
+        elif opt.bone_lengths:
+            # Define multiple sets of stretch factors
+            self.stretch_sets = [
+                'stretch;1;10;2;15',  # Example set 1
+                'stretch;3;20;4;25',  # Example set 2
+                'stretch;5;30;6;35'  # Example set 3
+            ]
+
+            self.augmentation.extend(self.stretch_sets)
+
+
+
+        #exit(0)
         if opt.flip_z and opt.flip_x:
             self.augmentation.append('flip_xz')
 
@@ -64,7 +92,7 @@ class Datasets(Dataset):
         #self.modified_template =
         self.data_idx = []
         seq_len = self.in_n + self.out_n
-        subs = np.array([np.array([11, 6, 7, 8, 9]), np.array([1]), np.array([5])], dtype= object)
+        subs = np.array([np.array([1, 6, 7, 8, 9]), np.array([11]), np.array([5])], dtype= object)
         # acts = data_utils.define_actions(actions)
         if actions is None:
             # acts = ["walking", "eating", "smoking", "discussion", "directions",
@@ -95,6 +123,8 @@ class Datasets(Dataset):
 
         #joint_table = [i for i, j in enumerate(joint_name)]
         self.joint_table = []
+
+
         for i, j in enumerate(joint_name):
             if j[:4] == 'Left':
                 orig = joint_name.index("".join(["Right", j[4:]]))
@@ -107,6 +137,8 @@ class Datasets(Dataset):
             else:
                 orig = i
             self.joint_table.append(orig)
+
+            #print(self.joint_table)
 
 
 
@@ -134,12 +166,15 @@ class Datasets(Dataset):
                         the_sequence = torch.from_numpy(the_sequence).float().cuda()
                         # remove global rotation and translation
                         the_sequence[:, 0:6] = 0
-                        #print("The sequence is is", the_sequence.shape)
-                        #exit(0)
-                        p3d = data_utils.expmap2xyz_torch(the_sequence)
+                        #print(the_sequence.shape)
+
+                        #p3d = torch.reshape(the_sequence[:, 3:], (-1, 32, 3))
+
+                        ##p3d = data_utils.expmap2xyz_torch(the_sequence)
+                        #print(p3d.shape)
 
                         # self.p3d[(subj, action, subact)] = p3d.view(num_frames, -1).cpu().data.numpy()
-                        self.p3d[key] = p3d.view(num_frames, -1).cpu().data.numpy()
+                        self.p3d[key] = the_sequence
                         #print(self.p3d[key].shape)
                         #exit(0)
 
@@ -179,9 +214,11 @@ class Datasets(Dataset):
                     the_sequence1 = np.array(the_sequence1[even_list, :])
                     the_seq1 = torch.from_numpy(the_sequence1).float().cuda()
                     the_seq1[:, 0:6] = 0
-                    p3d1 = data_utils.expmap2xyz_torch(the_seq1)
+                    #p3d1 = data_utils.expmap2xyz_torch(the_seq1)
+                    #p3d1 = torch.reshape(the_seq1[:, 3:], (-1, 32, 3))
+
                     # self.p3d[(subj, action, 1)] = p3d1.view(num_frames1, -1).cpu().data.numpy()
-                    self.p3d[key] = p3d1.view(num_frames1, -1).cpu().data.numpy()
+                    self.p3d[key] = the_seq1
 
                     print("Reading subject {0}, action {1}, subaction {2}".format(subj, action, 2))
                     filename = '{0}/S{1}/{2}_{3}.txt'.format(self.path_to_data, subj, action, 2)
@@ -196,10 +233,10 @@ class Datasets(Dataset):
                     the_sequence2 = np.array(the_sequence2[even_list, :])
                     the_seq2 = torch.from_numpy(the_sequence2).float().cuda()
                     the_seq2[:, 0:6] = 0
-                    p3d2 = data_utils.expmap2xyz_torch(the_seq2)
-
+                    #p3d2 = data_utils.expmap2xyz_torch(the_seq2)
+                    #p3d2 = torch.reshape(the_seq2[:, 3:], (-1, 32, 3))
                     # self.p3d[(subj, action, 2)] = p3d2.view(num_frames2, -1).cpu().data.numpy()
-                    self.p3d[key + 1] = p3d2.view(num_frames2, -1).cpu().data.numpy()
+                    self.p3d[key + 1] = the_seq2
 
                     # print("action:{}".format(action))
                     # print("subact1:{}".format(num_frames1))
@@ -240,79 +277,71 @@ class Datasets(Dataset):
         return big_array
 
     def __getitem__(self, item):
-
         if len(self.data_idx[item]) != 4:
             print("Warning, mismatched data_idx: ", self.data_idx[item])
 
         key, start_frame, period, augmentation = self.data_idx[item]
-        #print(key, start_frame, period, augmentation)
-        #exit(0)
-        #key, start_frame, period= self.data_idx[item]
-        #key, start_frame, period = self.data_idx[item]
         fs = np.arange(start_frame, start_frame + self.in_n + self.out_n)
 
+        #print(self.p3d[key][fs].shape)
+        animation = self.p3d[key][fs].cuda()
+
+        #print(animation)
+        #print('animation is ', animation.shape)
+        #exit(0)
+
         if augmentation == 'flip_x':
-
-            #animation = self.p3d[key][fs]
-            animation_unflipped = self.p3d[key][fs].copy()
-            # print(animation_unflipped.shape)
-            #exit(0)
-            #np.savetxt("unflip.txt", animation_unflipped, delimiter=',')
-            animation = self.bone_swap(self.p3d[key][fs].copy().reshape([-1, 32, 3]))
-            animation[:,:,0] = animation[:,:,0] * -1
-
-            animation = animation.reshape([-1, 96])
-            #np.savetxt("flip_z.txt", animation, delimiter=',')
-
-
-
-            #exit(0)
-
+            animation = self.bone_swap(animation)
+            animation[:, :, 0] *= -1
+            animation = data_utils.expmap2xyz_torch(animation)
         elif augmentation == 'flip_z':
-
-            #flip_z = flipz(animation)
-            #animation = self.p3d[key][fs]
-            animation = self.bone_swap(self.p3d[key][fs].reshape([-1, 32, 3]))
-            animation[:, :,2] = animation[:, :,2] * -1
-
-            animation = animation.reshape([-1,96])
-
+            animation = self.bone_swap(animation)
+            animation[:, :, 2] *= -1
+            animation = data_utils.expmap2xyz_torch(animation)
         elif augmentation == 'flip_xz':
-
-            #flip_z = flipz(animation)
-            #animation = self.p3d[key][fs]
-            animation = self.p3d[key][fs].reshape([-1, 32, 3])
-            animation[:,:, 0] = animation[:, :, 0] * -1
-            animation[:,:, 2] = animation[:, :, 2] * -1
-
-            animation = animation.reshape([-1,96])
-
-        #elif augmentation == 'y_rotation':
-        elif augmentation[:4] == 'yrot':
-
+            animation[:, :, 0] *= -1
+            animation[:, :, 2] *= -1
+            animation = data_utils.expmap2xyz_torch(animation)
+        elif augmentation.startswith('yrot'):
             degrees = int(augmentation[4:])
             theta = math.radians(degrees)
-            animation_unflipped = self.p3d[key][fs].copy()
-            #np.savetxt("unflip.txt", animation_unflipped, delimiter=',')
-            animation = self.p3d[key][fs].reshape([-1, 32, 3])
+            x = animation[:, :, 0]
+            z = animation[:, :, 2]
+            animation[:, :, 0] = x * math.cos(theta) - z * math.sin(theta)
+            animation[:, :, 2] = z * math.cos(theta) + x * math.sin(theta)
+            animation = data_utils.expmap2xyz_torch(animation)
+        elif augmentation.startswith('stretch'):
 
+            multiplier = []
+            if isinstance(augmentation, str) and augmentation.startswith('stretch;'):
+                #print("Is this thing on?")
 
-            animation[:,:,0] = animation[:,:,0] * math.cos(theta) - animation[:,:,2] * math.sin(theta)
-            animation[:,:,2] = animation[:,:,2] * math.cos(theta) + animation[:,:,0] * math.sin(theta)
+                stretch_params = augmentation.split(';')[1:]
+                for i in range(0, len(stretch_params), 2):
+                    bone_index = int(stretch_params[i])
+                    multiplier_factor = (float(stretch_params[i + 1]) + 100) / 100
 
-            animation = animation.reshape([-1,96])
-            #np.savetxt("y_rotation.txt", animation, delimiter=',')
+                    multiplier.append((bone_index, multiplier_factor))
+                #print(f'Parsed bone lengths: {multiplier}')
 
-            #exit(0)
+            tpose = self.offset.copy()
+            for i,m in multiplier:
+                tpose[i, :] = tpose[i, :] * m
+                #print('tpose multiplier',tpose.shape)
+                # exit(0)
 
-        # return data + noise
+            animation = data_utils.expmap2xyz_torch(animation, tpose)
 
         else:
-            animation = self.p3d[key][fs]
-        # no flip
 
+            #animation = animation.reshape([animation.shape[0], -1])
+            animation = data_utils.expmap2xyz_torch(animation)
+            # print('animation is ',animation.shape)
+            # exit(0)#should look like this torch.Size([750, 99])
+
+        animation = animation.reshape([-1, 96])
         mean = 0
         std = self.noise
-        noise = np.random.normal(mean, std, self.p3d[key][fs].shape)
+        #noise = np.random.normal(mean, std, animation.shape)
 
-        return animation + noise, period, augmentation
+        return animation, period, augmentation

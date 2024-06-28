@@ -574,14 +574,18 @@ def expmap2rotmat_torch(r):
     return R
 
 
-def expmap2xyz_torch(expmap):
+def expmap2xyz_torch(expmap, body_lengths = None):
     """
     convert expmaps to joint locations
     :param expmap: N*99
     :return: N*32*3
     """
     parent, offset, rotInd, expmapInd = forward_kinematics._some_variables()
-    xyz = forward_kinematics.fkl_torch(expmap, parent, offset, rotInd, expmapInd)
+
+    if (body_lengths is None):
+        body_lengths = offset
+
+    xyz = forward_kinematics.fkl_torch(expmap, parent, body_lengths, rotInd, expmapInd)
     return xyz
 
 
