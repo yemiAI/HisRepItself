@@ -8,6 +8,7 @@ import torch
 import re
 import csv
 import math
+import random
 from utils import forward_kinematics
 
 ##read cvs file
@@ -67,12 +68,51 @@ class Datasets(Dataset):
             self.augmentation.extend(yrotations)
 
         elif opt.bone_lengths:
+            joint_name = ["Hips", "RightUpLeg", "RightLeg", "RightFoot", "RightToeBase", "RSiteF", "LeftUpLeg",
+                          "LeftLeg",
+                          "LeftFoot",
+                          "LeftToeBase", "LSiteF", "Spine", "Spine1", "Neck", "Head", "Site", "LeftShoulder", "LeftArm",
+                          "LeftForeArm",
+                          "LeftHand", "LeftHandThumb", "LSiteT", "L_Wrist_End", "LSiteH", "RightShoulder", "RightArm",
+                          "RightForeArm", "RightHand", "RightHandThumb", "RSiteT", "R_Wrist_End", "RSiteH"]
             # Define multiple sets of stretch factors
-            self.stretch_sets = [
-                'stretch;1;10;2;15',  # Example set 1
-                'stretch;3;20;4;25',  # Example set 2
-                'stretch;5;30;6;35'  # Example set 3
-            ]
+            self.joint_table = []
+
+            for i, j in enumerate(joint_name):
+                if j[:4] == 'Left':
+                    orig = joint_name.index("".join(["Right", j[4:]]))
+                elif j[:5] == 'Right':
+                    orig = joint_name.index("".join(["Left", j[5:]]))
+                elif j[0] == 'L':
+                    orig = joint_name.index("".join(["R", j[1:]]))
+                elif j[0] == 'R':
+                    orig = joint_name.index("".join(["L", j[1:]]))
+                else:
+                    orig = i
+                self.joint_table.append(orig)
+            lowest_number = 0
+            highest_number = len(self.joint_table) - 1
+            random_number = random.randint(lowest_number, highest_number)
+            #print(random_number)
+
+            self.stretch_sets = []
+
+            for x in range(opt.bone_lengths):
+                stretch = ['stretch']
+
+                for i in range(3):
+                    bone_index = random.randint(0, len(self.joint_table) -1)
+                    stretch_factor = random.randint(-25, 25)
+                    stretch.append(str(bone_index))
+                    stretch.append(str(stretch_factor))
+
+                    if self.joint_table[bone_index] != bone_index: ###mirroed bone is same as the one i got i dont need to do anything
+
+                        stretch.append(str(self.joint_table[bone_index]))
+                        stretch.append(str(stretch_factor))
+
+                self.stretch_sets.append(";".join(stretch))
+                #print(self.stretch_sets)
 
             self.augmentation.extend(self.stretch_sets)
 
@@ -327,10 +367,24 @@ class Datasets(Dataset):
             tpose = self.offset.copy()
             for i,m in multiplier:
                 tpose[i, :] = tpose[i, :] * m
+
+
+
                 #print('tpose multiplier',tpose.shape)
                 # exit(0)
 
-            animation = data_utils.expmap2xyz_torch(animation, tpose)
+            #animation2 = data_utils.expmap2xyz_torch(animation, tpose)
+            #animation2 = animation.reshape([-1, 96]).cpu().numpy()
+            #print(animation.shape)
+           # np.savetxt("GT_animation_variable_bone_length.txt", animation2, delimiter=',')
+            animation = self.p3d[key][fs].clone()
+            animation = data_utils.expmap2xyz_torch(animation)
+            #animation = animation.reshape([-1, 96]).cpu().numpy()
+            #print(animation2.shape)
+            #np.savetxt("variable_bone_length.txt", animation, delimiter=',')
+            #print("File has been saved")
+            #exit(0)
+
 
         else:
 
@@ -339,7 +393,10 @@ class Datasets(Dataset):
             # print('animation is ',animation.shape)
             # exit(0)#should look like this torch.Size([750, 99])
 
-        animation = animation.reshape([-1, 96])
+        animation = animation.reshape([-1, 96]).cpu().numpy()
+        #np.savetxt("variable_bone_length.txt", animation, delimiter=',')
+        #print("File has been saved")
+        #exit(0)
         mean = 0
         std = self.noise
         #noise = np.random.normal(mean, std, animation.shape)
