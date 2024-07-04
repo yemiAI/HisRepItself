@@ -321,8 +321,10 @@ class Datasets(Dataset):
             print("Warning, mismatched data_idx: ", self.data_idx[item])
 
         key, start_frame, period, augmentation = self.data_idx[item]
+        print(self.data_idx[item])
         fs = np.arange(start_frame, start_frame + self.in_n + self.out_n)
-
+        print('Fs is ',fs)
+        #exit(0)
         #print(self.p3d[key][fs].shape)
         animation = self.p3d[key][fs].cuda()
 
