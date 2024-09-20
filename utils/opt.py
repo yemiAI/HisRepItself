@@ -18,7 +18,7 @@ class Options:
         #                     General options
         # ===============================================================
         self.parser.add_argument('--dataset', type=str,
-                                  default='h3.6m_periodic',
+                                  default='h3.6m',
                                   help='path to dataset')
         self.parser.add_argument('--filename', type=str, help='path to single file to visualize')
         self.parser.add_argument('--filename_mpjpe', type=str, help='path to single file to visualize')
@@ -79,6 +79,10 @@ class Options:
         self.parser.add_argument('--y_rotation', type=int, default = 0, help='y rotation  augmentation')
         self.parser.add_argument('--bone_lengths', type=int,default = 0, help="Stretch parameters in the format 'stretch;<bone>;<amt>;<bone>;<amt>;...'")
         self.parser.add_argument('--flip_xz', action='store_true', help='Flip XZ  augmentation')
+
+
+        #--------------------------------------------------#
+        self.parser.add_argument('--shift_step', type=int, default=1, help='shift step')
 
 
 

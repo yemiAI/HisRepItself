@@ -308,8 +308,8 @@ if __name__ == '__main__':
     #parser.add_argument("--foot_anchor", type=str, required=True, help="Foot anchor positions")
     parser.add_argument("--label1", type=str, required=True, help="Label for the first animation")
     parser.add_argument("--label2", type=str, required=True, help="Label for the second animation")
-    parser.add_argument("--rolling_file", type=str, help="CSV file for rolling graph", required=True)
-    parser.add_argument("--rolling_file_2", type=str, help="CSV file for rolling graph", required=True)
+    parser.add_argument("--rolling_file", type=str, help="CSV file for rolling graph", required=False)
+    parser.add_argument("--rolling_file_2", type=str, help="CSV file for rolling graph", required=False)
 
     args = parser.parse_args()
 
